@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { ActiveScreen, DocumentDossier } from './types';
 import { initialDocuments } from './data/documents';
 import { Sidebar } from './components/Sidebar';
@@ -28,12 +28,6 @@ export default function App() {
   const [isEscalateModalOpen, setIsEscalateModalOpen] = useState(false);
   const [isStatementModalOpen, setIsStatementModalOpen] = useState(false);
   const [isRedEscalated, setIsRedEscalated] = useState(false);
-
-  // Permanently lock to official Light Mode
-  useEffect(() => {
-    document.documentElement.classList.remove('dark');
-    localStorage.setItem('yaqatha_theme', 'light');
-  }, []);
 
   // Toast notification
   const [toastMessage, setToastMessage] = useState<{ title: string; desc: string; type: 'success' | 'alert' } | null>(null);
@@ -93,7 +87,7 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] text-slate-900 flex font-['IBM_Plex_Sans_Arabic',sans-serif]">
+    <div className="min-h-screen bg-[#F8FAFC] dark:bg-[#0E1210] text-slate-900 flex font-['IBM_Plex_Sans_Arabic',sans-serif]">
       
       {/* 1. Fixed Right Sidebar */}
       <Sidebar

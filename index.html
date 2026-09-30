@@ -3,6 +3,8 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/svg+xml" href="/yaqadha-logo.svg" />
+    <link rel="icon" type="image/png" href="/yaqadha-logo.png" />
     <title>منصة يقظة للنزاهة والتدقيق الاستباقي</title>
     <meta name="description" content="نظام التدقيق الاستباقي وتتبع الأثر الرقمي للوثائق الرسمية بنظام الإشارات الضوئية للسلامة والنزاهة المؤسسية" />
     <meta property="og:title" content="منصة يقظة للنزاهة والتدقيق الاستباقي" />
@@ -12,6 +14,17 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@100;200;300;400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+      (function () {
+        try {
+          var theme = localStorage.getItem('yaqadha_theme');
+          if (theme !== 'light' && theme !== 'dark') {
+            theme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+          }
+          if (theme === 'dark') document.documentElement.classList.add('dark');
+        } catch (e) {}
+      })();
+    </script>
   </head>
   <body class="bg-slate-50 text-slate-900 font-['IBM_Plex_Sans_Arabic',sans-serif] antialiased selection:bg-[#2C3E28] selection:text-white">
     <div id="root"></div>

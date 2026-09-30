@@ -31,7 +31,8 @@ export const Navbar: React.FC<NavbarProps> = ({
             >
               <div className="flex items-center justify-center shrink-0 -translate-y-0.5">
                 <img 
-                  src="/image_3.png" 
+                  src="/yaqadha-logo.svg" 
+                  data-brand-logo
                   alt="شعار يقظة" 
                   className="w-12 h-12 object-contain shrink-0 transition-transform duration-300 group-hover:scale-105 select-none"
                 />

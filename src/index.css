@@ -1,5 +1,7 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 @layer base {
   :root {
     color-scheme: light;
@@ -19,4 +21,144 @@
   input, button, select, textarea, optgroup {
     font-family: inherit !important;
   }
+}
+
+/* ============================================================
+   Dark mode — applied via html.dark (see index.html + useTheme)
+   Tailwind color variables are remapped so every screen converts
+   automatically; light mode is untouched.
+   ============================================================ */
+@layer base {
+  html.dark {
+    color-scheme: dark;
+    scrollbar-color: #2A342D #111613;
+
+    /* Surfaces (cards) */
+    --color-white: #161C18;
+
+    /* Neutral scale (inverted, olive-tinted) */
+    --color-slate-50: #111613;
+    --color-slate-100: #1C241F;
+    --color-slate-200: #2A342D;
+    --color-slate-300: #3B4740;
+    --color-slate-400: #7F8B83;
+    --color-slate-500: #98A39B;
+    --color-slate-600: #B2BCB5;
+    --color-slate-700: #CAD2CC;
+    --color-slate-800: #DFE5E1;
+    --color-slate-900: #EEF2EF;
+    --color-slate-950: #F8FAF8;
+
+    /* Red (blocked) — 500/600 keep brand values */
+    --color-red-50: #2A1516;
+    --color-red-100: #3A1B1D;
+    --color-red-200: #5C2629;
+    --color-red-300: #7E3236;
+    --color-red-400: #F58A8A;
+    --color-red-700: #FCA5A5;
+    --color-red-800: #FECACA;
+    --color-red-900: #FEE2E2;
+    --color-red-950: #FFF1F1;
+
+    /* Amber (review) — 500/600 keep brand values */
+    --color-amber-50: #29210F;
+    --color-amber-100: #382C12;
+    --color-amber-200: #5A4619;
+    --color-amber-300: #7A5E1F;
+    --color-amber-400: #F5C451;
+    --color-amber-700: #FCD34D;
+    --color-amber-800: #FDE68A;
+    --color-amber-900: #FEF3C7;
+    --color-amber-950: #FFFBEB;
+
+    /* Emerald (safe) — 500/600 keep brand values */
+    --color-emerald-50: #10251C;
+    --color-emerald-100: #143126;
+    --color-emerald-200: #1D4A37;
+    --color-emerald-300: #276349;
+    --color-emerald-400: #5EE0AE;
+    --color-emerald-700: #6EE7B7;
+    --color-emerald-800: #A7F3D0;
+    --color-emerald-900: #D1FAE5;
+    --color-emerald-950: #ECFDF5;
+  }
+
+  /* Softer shadows on dark (explicit shadow-color utilities still win) */
+  html.dark *,
+  html.dark ::before,
+  html.dark ::after {
+    --tw-shadow-color: rgb(0 0 0 / 0.45);
+  }
+
+  /* Keep the olive palm/eye logo visible */
+  html.dark img[data-brand-logo] {
+    filter: brightness(2.4) saturate(0.7);
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    body {
+      transition: background-color 0.2s ease, color 0.2s ease;
+    }
+  }
+}
+
+/* Explicit overrides — same specificity as the original utilities
+   (html.dark wrapped in :where) and emitted after them, so they win
+   without beating hover/focus variants on the same element. */
+@layer utilities {
+  /* White text stays white */
+  :where(html.dark) .text-white,
+  :where(html.dark) .hover\:text-white:hover,
+  :where(html.dark) .group:hover .group-hover\:text-white,
+  :where(html.dark) .selection\:text-white ::selection,
+  :where(html.dark) .selection\:text-white::selection {
+    color: #FFFFFF;
+  }
+  :where(html.dark) .selection\:bg-\[\#2C3E28\] ::selection,
+  :where(html.dark) .selection\:bg-\[\#2C3E28\]::selection {
+    background-color: #3E5A37;
+  }
+
+  /* Already-dark surfaces stay dark */
+  :where(html.dark) .bg-slate-900 { background-color: #070A08; }
+  :where(html.dark) .bg-slate-800 { background-color: #0B0F0C; }
+  :where(html.dark) .bg-slate-700 { background-color: #1A221D; }
+  :where(html.dark) .border-slate-700 { border-color: #26302A; }
+  :where(html.dark) .text-slate-200 { color: #C9D1CC; }
+  :where(html.dark) .text-slate-300 { color: #8E9A92; }
+  :where(html.dark) .hover\:bg-slate-800:hover { background-color: #1A221D; }
+  :where(html.dark) .hover\:bg-slate-700:hover { background-color: #26302A; }
+
+  /* Modal backdrop */
+  :where(html.dark) .bg-slate-900\/70 { background-color: rgb(3 5 4 / 0.78); }
+
+  /* Colored buttons with white text keep their original fills */
+  :where(html.dark) .bg-red-700 { background-color: #B91C1C; }
+  :where(html.dark) .bg-red-800,
+  :where(html.dark) .hover\:bg-red-800:hover { background-color: #991B1B; }
+  :where(html.dark) .bg-amber-700,
+  :where(html.dark) .hover\:bg-amber-700:hover { background-color: #B45309; }
+  :where(html.dark) .bg-emerald-700,
+  :where(html.dark) .hover\:bg-emerald-700:hover { background-color: #047857; }
+  :where(html.dark) .text-red-100 { color: #FEE2E2; }
+
+  /* Light-tinted arbitrary alert panels */
+  :where(html.dark) .bg-\[\#FEF2F2\] { background-color: #2A1516; }
+  :where(html.dark) .bg-\[\#FFFBEB\] { background-color: #29210F; }
+
+  /* Brand olive — lifted for visibility on dark */
+  :where(html.dark) .bg-\[\#2C3E28\],
+  :where(html.dark) .hover\:bg-\[\#2C3E28\]:hover { background-color: #3E5A37; }
+  :where(html.dark) .hover\:bg-\[\#233220\]:hover,
+  :where(html.dark) .hover\:bg-\[\#1f2d1c\]:hover { background-color: #4A6A42; }
+  :where(html.dark) .hover\:bg-\[\#2C3E28\]\/5:hover { background-color: rgb(111 145 101 / 0.08); }
+  :where(html.dark) .text-\[\#2C3E28\] { color: #A9C7A0; }
+  :where(html.dark) .text-\[\#1E2B1B\],
+  :where(html.dark) .hover\:text-\[\#1E2B1B\]:hover { color: #C6DDBF; }
+  :where(html.dark) .border-\[\#2C3E28\],
+  :where(html.dark) .hover\:border-\[\#2C3E28\]:hover,
+  :where(html.dark) .focus\:border-\[\#2C3E28\]:focus { border-color: #6F9165; }
+  :where(html.dark) .border-\[\#2C3E28\]\/40 { border-color: rgb(111 145 101 / 0.4); }
+  :where(html.dark) .ring-\[\#2C3E28\],
+  :where(html.dark) .focus\:ring-\[\#2C3E28\]:focus { --tw-ring-color: #6F9165; }
 }

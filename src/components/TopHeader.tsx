@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Bell, ShieldAlert, Clock, CheckCircle2, CheckCheck, X } from 'lucide-react';
+import { ThemeToggle } from './ThemeToggle';
 
 interface NotificationItem {
   id: string;
@@ -67,6 +68,9 @@ export const TopHeader: React.FC<TopHeaderProps> = () => {
       {/* Left Side: Notifications & User Profile Card */}
       <div className="flex items-center gap-3 shrink-0">
         
+        {/* Theme Toggle (Light / Dark) */}
+        <ThemeToggle />
+
         {/* Notification Bell with Dropdown Panel */}
         <div className="relative" ref={dropdownRef}>
           <button 

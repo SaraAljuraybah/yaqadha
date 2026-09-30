@@ -45,7 +45,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
         <div className="h-18 flex items-center px-6 border-b border-slate-200/90 gap-2.5">
           <div className="flex items-center justify-center shrink-0 -translate-y-0.5">
             <img 
-              src="/image_3.png" 
+              src="/yaqadha-logo.svg" 
+              data-brand-logo
               alt="شعار يقظة" 
               className="w-12 h-12 object-contain shrink-0 transition-transform duration-300 hover:scale-105 select-none"
             />
