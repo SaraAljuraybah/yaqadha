@@ -1,0 +1,6 @@
+{
+  "name": "منصة يقظة للنزاهة والتدقيق الاستباقي",
+  "description": "نظام التدقيق الاستباقي وتتبع الأثر الرقمي للوثائق الرسمية بنظام الإشارات الضوئية للسلامة والنزاهة المؤسسية",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

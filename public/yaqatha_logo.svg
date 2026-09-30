@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 530" width="100%" height="100%" fill="none">
+  <defs>
+    <mask id="yaqatha-pupil-mask">
+      <rect width="500" height="530" fill="white" />
+      <circle cx="266" cy="256" r="14" fill="black" />
+    </mask>
+  </defs>
+
+  <!-- Palm Trunk Spine -->
+  <line x1="250" y1="46" x2="250" y2="175" stroke="#2C3E28" stroke-width="16" stroke-linecap="butt" />
+
+  <!-- Radiating Palm Fronds - 4 Tiers of Symmetrical Chevron Leaves -->
+  <!-- Tier 1 (Topmost) -->
+  <path d="M 250 96 L 175 50 L 250 152" fill="none" stroke="#2C3E28" stroke-width="16" stroke-linecap="round" stroke-linejoin="miter" stroke-miterlimit="4" />
+  <path d="M 250 96 L 325 50 L 250 152" fill="none" stroke="#2C3E28" stroke-width="16" stroke-linecap="round" stroke-linejoin="miter" stroke-miterlimit="4" />
+
+  <!-- Tier 2 -->
+  <path d="M 250 132 L 118 106 L 250 185" fill="none" stroke="#2C3E28" stroke-width="16" stroke-linecap="round" stroke-linejoin="miter" stroke-miterlimit="4" />
+  <path d="M 250 132 L 382 106 L 250 185" fill="none" stroke="#2C3E28" stroke-width="16" stroke-linecap="round" stroke-linejoin="miter" stroke-miterlimit="4" />
+
+  <!-- Tier 3 -->
+  <path d="M 250 166 L 82 178 L 230 216" fill="none" stroke="#2C3E28" stroke-width="16" stroke-linecap="round" stroke-linejoin="miter" stroke-miterlimit="4" />
+  <path d="M 250 166 L 418 178 L 270 216" fill="none" stroke="#2C3E28" stroke-width="16" stroke-linecap="round" stroke-linejoin="miter" stroke-miterlimit="4" />
+
+  <!-- Tier 4 (Bottom-most fronds framing eye) -->
+  <path d="M 240 196 L 62 258 L 185 242" fill="none" stroke="#2C3E28" stroke-width="16" stroke-linecap="round" stroke-linejoin="miter" stroke-miterlimit="4" />
+  <path d="M 260 196 L 438 258 L 315 242" fill="none" stroke="#2C3E28" stroke-width="16" stroke-linecap="round" stroke-linejoin="miter" stroke-miterlimit="4" />
+
+  <!-- Outer Eye Shape -->
+  <!-- Upper Eyelid Arch -->
+  <path d="M 102 276 Q 250 195 398 276" fill="none" stroke="#2C3E28" stroke-width="16" stroke-linecap="round" />
+
+  <!-- Lower Eyelid Arch (left and right wings meeting central loop) -->
+  <path d="M 102 276 Q 165 346 232 348" fill="none" stroke="#2C3E28" stroke-width="16" stroke-linecap="round" />
+  <path d="M 398 276 Q 335 346 268 348" fill="none" stroke="#2C3E28" stroke-width="16" stroke-linecap="round" />
+
+  <!-- Central Pupil with Circular Reflection Highlight -->
+  <circle cx="250" cy="272" r="33" fill="#2C3E28" mask="url(#yaqatha-pupil-mask)" />
+
+  <!-- Spiral Contour around Pupil -->
+  <path d="M 258 226 C 220 226 200 248 200 274 C 200 306 224 326 250 326 C 276 326 298 306 298 274" fill="none" stroke="#2C3E28" stroke-width="16" stroke-linecap="round" />
+
+  <!-- Bottom Symmetrical Teardrop Loop -->
+  <path d="M 250 348 C 218 382 196 420 196 450 C 196 484 220 508 250 508 C 280 508 304 484 304 450 C 304 420 282 382 250 348 Z" fill="none" stroke="#2C3E28" stroke-width="16" stroke-linecap="round" stroke-linejoin="round" />
+</svg>
