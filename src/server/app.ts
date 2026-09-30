@@ -1,5 +1,4 @@
 import express from "express";
-import { GoogleGenAI } from "@google/genai";
 
 interface AnalysisReport {
   summary: string;
@@ -155,6 +154,7 @@ export function createApiApp() {
     }
 
     try {
+      const { GoogleGenAI } = await import("@google/genai");
       const ai = new GoogleGenAI({
         apiKey,
         httpOptions: {
