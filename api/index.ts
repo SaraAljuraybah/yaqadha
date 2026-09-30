@@ -1,4 +1,4 @@
-import { createApiApp } from "../src/server/app";
+import { createApiApp } from "../src/server/app.js";
 import type { Express } from "express";
 import type { IncomingMessage, ServerResponse } from "http";
 
