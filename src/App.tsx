@@ -1,12 +1,14 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { ActiveScreen, DocumentDossier } from './types';
-import { initialDocuments } from './data/documents';
+import { getDocuments } from './data/documents';
+import { useLanguage } from './i18n';
 import { Sidebar } from './components/Sidebar';
 import { TopHeader } from './components/TopHeader';
 import { FileDossierScreen } from './components/FileDossierScreen';
 import { UnifiedIndicatorsScreen } from './components/UnifiedIndicatorsScreen';
 import { ExecutiveDashboardScreen } from './components/ExecutiveDashboardScreen';
 import { AccessManagementScreen } from './components/AccessManagementScreen';
+import { TenderRiskAssessmentScreen } from './components/TenderRiskAssessmentScreen';
 import { PrePublishScanModal } from './components/PrePublishScanModal';
 import { EscalationModal } from './components/EscalationModal';
 import { StatementRequestModal } from './components/StatementRequestModal';
@@ -14,7 +16,8 @@ import { CheckCircle2, ShieldAlert, X } from 'lucide-react';
 
 export default function App() {
   const [activeScreen, setActiveScreen] = useState<ActiveScreen>('executive_dashboard');
-  const [documents, setDocuments] = useState<DocumentDossier[]>(initialDocuments);
+  const { lang, t } = useLanguage();
+  const documents = useMemo<DocumentDossier[]>(() => getDocuments(lang), [lang]);
   const [searchQuery, setSearchQuery] = useState('');
   
   // Default selected documents:
@@ -67,16 +70,16 @@ export default function App() {
 
   const handlePublishSuccess = (docTitle: string) => {
     showToast(
-      'موافقة تلقائية للنشر',
-      `حصلت الوثيقة (${docTitle}) على موافقة المنصة التلقائية لسلامة دورة التواقيع وكفاية الرؤساء.`,
+      t('toasts.autoApprovalTitle'),
+      t('toasts.autoApprovalBody', { title: docTitle }),
       'success'
     );
   };
 
   const handleExportForensicReport = () => {
     showToast(
-      'تم تصعيد وتجهيز محضر الأدلة الجنائية',
-      'تم رفع كشف الأسماء والبصمات الرقمية SHA-256 لمعالي رئيس المنظومة وهيئة مكافحة الفساد.',
+      t('toasts.forensicTitle'),
+      t('toasts.forensicBody'),
       'success'
     );
   };
@@ -100,7 +103,7 @@ export default function App() {
       />
 
       {/* 2. Main Content Wrapper shifted for Fixed Right Sidebar */}
-      <div className="mr-64 lg:mr-72 flex-1 flex flex-col min-w-0">
+      <div className="ms-64 lg:ms-72 flex-1 flex flex-col min-w-0">
         
         {/* Top Header - User Profile & Notifications */}
         <TopHeader
@@ -160,6 +163,11 @@ export default function App() {
             <AccessManagementScreen />
           )}
 
+          {/* 5. تقييم مخاطر منافسة (نموذج يقظة لمخاطر المشتريات) */}
+          {activeScreen === 'tender_risk_assessment' && (
+            <TenderRiskAssessmentScreen />
+          )}
+
         </main>
       </div>
 
@@ -200,14 +208,14 @@ export default function App() {
 
       {/* Floating Notification Toast */}
       {toastMessage && (
-        <div className="fixed bottom-6 right-6 z-50 animate-in slide-in-from-bottom-3 duration-300">
+        <div className="fixed bottom-6 start-6 z-50 animate-in slide-in-from-bottom-3 duration-300">
           <div className="bg-slate-900 text-white rounded-2xl shadow-2xl p-4 border border-slate-700 flex items-start gap-3 max-w-md">
             {toastMessage.type === 'success' ? (
               <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" />
             ) : (
               <ShieldAlert className="w-5 h-5 text-red-400 shrink-0 mt-0.5" />
             )}
-            <div className="flex-1 text-right">
+            <div className="flex-1 text-start">
               <h5 className="font-bold text-xs text-white">{toastMessage.title}</h5>
               <p className="text-[11px] text-slate-300 mt-0.5">{toastMessage.desc}</p>
             </div>

@@ -1,0 +1,12 @@
+record_id,tender_value_amount,tender_value_currency,lot_count,bid_count,tenderer_count,award_count,supplier_count,document_count,finding1_rule_id,finding1_status,finding1_manifestation,finding1_evidence_references,finding2_rule_id,finding2_status,finding2_manifestation,finding2_evidence_references
+TENDER-GREEN,500000,EUR,1,1,1,1,1,3,,,,,,,,
+TEST-01-CLEAN,500000,EUR,1,2,2,1,1,3,,,,,,,,
+TENDER-001,500000,EUR,1,1,1,1,1,3,PROC_001,observed,Possible contract splitting or limited competition,DOCUMENT-001,,,,
+TEST-03-COI-WEAK,800000,EUR,1,2,2,1,1,3,COI_001,weak_signal,Evaluation committee member shares a surname with a bidder's manager,REG-2026-044,,,,
+TEST-04-COI-CORR,1200000,EUR,1,2,2,1,1,6,COI_001,corroborated,Approving manager holds shares in the awarded supplier,DISCLOSURE-17;CR-REGISTRY-889,,,,
+TEST-05-DOC-CONF,300000,EUR,1,2,2,1,1,3,DOC_001,confirmed,Signed specification altered after approval,DOC-2026-01;AUDIT-LOG-5521,,,,
+TEST-06-CYB,2500000,EUR,2,3,3,2,2,4,CYB_001,observed,Specification file accessed by an external account before publication,ACCESS-LOG-7781,,,,
+TEST-07-MULTI,4000000,EUR,3,1,1,3,1,4,PROC_001,corroborated,Three consecutive awards just below the approval threshold to the same supplier,PO-1101;PO-1102;PO-1103,COI_001,observed,Supplier owner is related to the requesting department head,HR-DECL-09
+DOC-2026-01,3500000,SAR,1,2,2,1,1,5,DOC_001,observed,"Document approved with a single unauthorized signature, bypassing mandatory approvals",DOC-2026-01,COI_001,weak_signal,Preparer approved his own department's specification,DOC-2026-01
+YQ-8841,900000,SAR,1,2,2,1,1,3,PROC_001,weak_signal,Signature chain incomplete: 2 of 4 approvals,YQ-8841,,,,
+DOC-2026-03,1500000,SAR,1,2,2,1,1,3,,,,,,,,

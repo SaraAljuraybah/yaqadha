@@ -14,6 +14,7 @@ import {
   ShieldCheck
 } from 'lucide-react';
 import { DocumentDossier } from '../types';
+import { formatNodes, useLanguage } from '../i18n';
 
 interface PrePublishScanModalProps {
   isOpen: boolean;
@@ -32,6 +33,7 @@ export const PrePublishScanModal: React.FC<PrePublishScanModalProps> = ({
   onProceedToYellowInspection,
   onPublishSuccess,
 }) => {
+  const { t } = useLanguage();
   const [step, setStep] = useState<number>(0);
 
   useEffect(() => {
@@ -60,7 +62,7 @@ export const PrePublishScanModal: React.FC<PrePublishScanModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-xs animate-in fade-in">
-      <div className="bg-white rounded-3xl border border-slate-200 shadow-2xl max-w-xl w-full p-6 text-right space-y-5">
+      <div className="bg-white rounded-3xl border border-slate-200 shadow-2xl max-w-xl w-full p-6 text-start space-y-5">
         
         {/* Modal Header */}
         <div className="flex items-center justify-between border-b border-slate-100 pb-3">
@@ -72,10 +74,10 @@ export const PrePublishScanModal: React.FC<PrePublishScanModalProps> = ({
             </div>
             <div>
               <h3 className="font-black text-slate-900 text-base">
-                التحقق التلقائي الإلزامي من مسار التوقيعات للنشر
+                {t('modals.prePublish.title')}
               </h3>
               <p className="text-xs text-slate-500 font-mono">
-                الوثيقة رقم {document.code} • {document.title}
+                {formatNodes(t('modals.prePublish.subtitle'), { code: document.code, title: document.title })}
               </p>
             </div>
           </div>
@@ -97,17 +99,17 @@ export const PrePublishScanModal: React.FC<PrePublishScanModalProps> = ({
           }`}>
             <div>
               <span className="font-bold text-slate-800 block">
-                1. فحص دورة التداول (كم مرة مر على شخص)
+                {t('modals.prePublish.check1Title')}
               </span>
               <span className="text-[11px] text-slate-500">
-                المسجل بالنظام: {gov.passCount} مرات تداول
+                {formatNodes(t('modals.prePublish.check1Value'), { count: gov.passCount })}
               </span>
             </div>
             {step >= 1 ? (
               <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full ${
                 gov.passCount <= 3 ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-800'
               }`}>
-                {gov.passCount <= 3 ? '⚠️ تداول محدود' : '✅ دورة مكتملة'}
+                {gov.passCount <= 3 ? t('modals.prePublish.check1Limited') : t('modals.prePublish.check1Complete')}
               </span>
             ) : (
               <Loader2 className="w-4 h-4 text-slate-400 animate-spin" />
@@ -120,17 +122,17 @@ export const PrePublishScanModal: React.FC<PrePublishScanModalProps> = ({
           }`}>
             <div>
               <span className="font-bold text-slate-800 block">
-                2. حصر قائمة وسجل (من اطلع عليه)
+                {t('modals.prePublish.check2Title')}
               </span>
               <span className="text-[11px] text-slate-500">
-                المسجل: {gov.viewersCount} أشخاص
+                {formatNodes(t('modals.prePublish.check2Value'), { count: gov.viewersCount })}
               </span>
             </div>
             {step >= 2 ? (
               <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full ${
                 gov.viewersCount <= 1 ? 'bg-red-100 text-red-800' : gov.viewersCount <= 2 ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-800'
               }`}>
-                {gov.viewersCount <= 1 ? '🔴 شخص واحد فقط (مريب)' : gov.viewersCount <= 2 ? '🟡 شخصان فقط (اشتباه)' : '🟢 مستوفٍ للأطراف المعنية'}
+                {gov.viewersCount <= 1 ? t('modals.prePublish.check2Single') : gov.viewersCount <= 2 ? t('modals.prePublish.check2Two') : t('modals.prePublish.check2Complete')}
               </span>
             ) : (
               step === 1 ? <Loader2 className="w-4 h-4 text-slate-400 animate-spin" /> : null
@@ -143,10 +145,10 @@ export const PrePublishScanModal: React.FC<PrePublishScanModalProps> = ({
           }`}>
             <div>
               <span className="font-bold text-slate-800 block">
-                3. فحص عدد الموقعين وتوقيع الرؤساء الكبار
+                {t('modals.prePublish.check3Title')}
               </span>
               <span className="text-[11px] text-slate-500">
-                {gov.signaturesCount} من أصل {gov.requiredSignaturesCount} تواقيع
+                {formatNodes(t('modals.prePublish.check3Value'), { signed: gov.signaturesCount, required: gov.requiredSignaturesCount })}
               </span>
             </div>
             {step >= 3 ? (
@@ -156,8 +158,8 @@ export const PrePublishScanModal: React.FC<PrePublishScanModalProps> = ({
                   : 'bg-red-100 text-red-800'
               }`}>
                 {gov.hasSeniorExecutiveSignature && gov.signaturesCount === gov.requiredSignaturesCount
-                  ? '✅ توقيع كبار الرؤساء معتمد'
-                  : '⚠️ نقص توقيع الرؤساء المعتمدين'}
+                  ? t('modals.prePublish.check3Complete')
+                  : t('modals.prePublish.check3Missing')}
               </span>
             ) : (
               step === 2 ? <Loader2 className="w-4 h-4 text-slate-400 animate-spin" /> : null
@@ -170,17 +172,17 @@ export const PrePublishScanModal: React.FC<PrePublishScanModalProps> = ({
           }`}>
             <div>
               <span className="font-bold text-slate-800 block">
-                4. مطابقة تسلسل وترتيب التواقيع الإلزامية
+                {t('modals.prePublish.check4Title')}
               </span>
               <span className="text-[11px] text-slate-500">
-                فحص قفز الصلاحيات وتخطي المستويات الرقابية
+                {t('modals.prePublish.check4Value')}
               </span>
             </div>
             {step >= 4 ? (
               <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full ${
                 gov.isSequenceCompliant ? 'bg-emerald-100 text-emerald-800' : 'bg-red-100 text-red-800'
               }`}>
-                {gov.isSequenceCompliant ? '✅ تسلسل منضبط' : '🛑 تم القفز والتخطي'}
+                {gov.isSequenceCompliant ? t('modals.prePublish.check4Compliant') : t('modals.prePublish.check4Skipped')}
               </span>
             ) : (
               step === 3 ? <Loader2 className="w-4 h-4 text-slate-400 animate-spin" /> : null
@@ -199,7 +201,7 @@ export const PrePublishScanModal: React.FC<PrePublishScanModalProps> = ({
                 <div className="flex items-center gap-2">
                   <CheckCircle2 className="w-5 h-5 text-emerald-600 stroke-[2.5]" />
                   <h4 className="font-black text-sm">
-                    المؤشر الأخضر: الموافقة التلقائية للنشر ممنوحة فوراً
+                    {t('modals.prePublish.safeTitle')}
                   </h4>
                 </div>
                 <p className="text-xs text-emerald-800 leading-relaxed font-medium">
@@ -214,11 +216,11 @@ export const PrePublishScanModal: React.FC<PrePublishScanModalProps> = ({
                 <div className="flex items-center gap-2">
                   <AlertTriangle className="w-5 h-5 text-amber-600 stroke-[2.5]" />
                   <h4 className="font-black text-sm">
-                    المؤشر الأصفر: اشتباه وخلل إجرائي - محال لرئيس القسم للتحقيق
+                    {t('modals.prePublish.reviewTitle')}
                   </h4>
                 </div>
                 <p className="text-xs text-amber-800 leading-relaxed font-medium">
-                  اطلع عليه شخصان فقط وطلب نشره، تم تقييد كل من اطلع ووقع، وتوجيه المستند لرئيس قسم {document.department} ومكتبه لعقد اجتماع استيضاح ولا يمكن النشر إلا بعد تصحيح الأخطاء.
+                  {formatNodes(t('modals.prePublish.reviewBody'), { department: document.department })}
                 </p>
               </div>
             )}
@@ -229,11 +231,11 @@ export const PrePublishScanModal: React.FC<PrePublishScanModalProps> = ({
                 <div className="flex items-center gap-2">
                   <Lock className="w-5 h-5 stroke-[2.5]" />
                   <h4 className="font-black text-sm">
-                    المؤشر الأحمر: خطر فساد وتسريع غير منطقي - مصعد لرئيس المنظومة وحظر أبدي
+                    {t('modals.prePublish.blockedTitle')}
                   </h4>
                 </div>
                 <p className="text-xs text-red-100 leading-relaxed">
-                  اطلع عليه شخص واحد فقط ووقع عليه منفرداً وتم رصد تعديل مشبوه. تم رفع كشف الأسماء فوراً لرئيس المنظومة وهيئة مكافحة الفساد، ويمنع منعاً باتاً نشر أو توثيق هذا المستند مستقبلاً.
+                  {t('modals.prePublish.blockedBody')}
                 </p>
               </div>
             )}
@@ -247,7 +249,7 @@ export const PrePublishScanModal: React.FC<PrePublishScanModalProps> = ({
             onClick={onClose}
             className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100 transition-colors"
           >
-            إغلاق
+            {t('common.close')}
           </button>
           
           {isSafe && step >= 4 && (
@@ -259,7 +261,7 @@ export const PrePublishScanModal: React.FC<PrePublishScanModalProps> = ({
               className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-md shadow-emerald-700/20 transition-all flex items-center gap-2"
             >
               <ShieldCheck className="w-4 h-4" />
-              <span>إتمام النشر والتوثيق الرسمي (بموافقة المنصة)</span>
+              <span>{t('modals.prePublish.publish')}</span>
             </button>
           )}
 
@@ -272,8 +274,8 @@ export const PrePublishScanModal: React.FC<PrePublishScanModalProps> = ({
               className="px-5 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold shadow-md shadow-amber-700/20 transition-all flex items-center gap-2"
             >
               <AlertTriangle className="w-4 h-4" />
-              <span>مراجعة ملف رئيس القسم وكشف الأسماء</span>
-              <ArrowLeft className="w-4 h-4" />
+              <span>{t('modals.prePublish.reviewAction')}</span>
+              <ArrowLeft className="w-4 h-4 ltr:rotate-180" />
             </button>
           )}
 
@@ -287,8 +289,8 @@ export const PrePublishScanModal: React.FC<PrePublishScanModalProps> = ({
               className="px-5 py-2.5 rounded-xl bg-red-700 hover:bg-red-800 disabled:opacity-50 text-white text-xs font-bold shadow-md shadow-red-700/20 transition-all flex items-center gap-2"
             >
               <ShieldAlert className="w-4 h-4" />
-              <span>عرض ملف تصعيد رئيس المنظومة ومحضر الحظر</span>
-              <ArrowLeft className="w-4 h-4" />
+              <span>{t('modals.prePublish.blockedAction')}</span>
+              <ArrowLeft className="w-4 h-4 ltr:rotate-180" />
             </button>
           )}
         </div>

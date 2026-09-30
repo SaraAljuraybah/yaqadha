@@ -1,5 +1,34 @@
 import React, { useState } from 'react';
 import { X, ShieldCheck, Download, Check, UserCheck, FileCheck } from 'lucide-react';
+import { formatNodes, Localizable, localize, useLanguage } from '../i18n';
+
+interface ApprovedSigner {
+  id: string;
+  name: string;
+  role: string;
+  signedAt: string;
+}
+
+const localizedApprovedSigners: Localizable<ApprovedSigner>[] = [
+  {
+    id: 's-1',
+    name: { ar: 'د. عبد الله السالم', en: 'Dr. Abdullah Al-Salem' },
+    role: { ar: 'مدير إدارة الموارد المالية (الشؤون المالية)', en: 'Director of Financial Resources (Financial Affairs)' },
+    signedAt: { ar: '2026-09-18 09:15 ص', en: '2026-09-18 09:15 AM' },
+  },
+  {
+    id: 's-2',
+    name: { ar: 'أ. سارة المنصور', en: 'Ms. Sarah Al-Mansour' },
+    role: { ar: 'المستشار القانوني العام (الشؤون القانونية)', en: 'General Legal Counsel (Legal Affairs)' },
+    signedAt: { ar: '2026-09-18 11:30 ص', en: '2026-09-18 11:30 AM' },
+  },
+  {
+    id: 's-3',
+    name: { ar: 'م. خالد التميمي', en: 'Eng. Khalid Al-Tamimi' },
+    role: { ar: 'رئيس قسم تقنية المعلومات والمشاريع (الإدارة العليا)', en: 'Head of IT & Projects (Executive Management)' },
+    signedAt: { ar: '2026-09-18 02:45 م', en: '2026-09-18 02:45 PM' },
+  },
+];
 
 interface ApprovedCertificateModalProps {
   isOpen: boolean;
@@ -14,10 +43,13 @@ export const ApprovedCertificateModal: React.FC<ApprovedCertificateModalProps> =
   isOpen,
   onClose,
   onConfirmPublish,
-  documentTitle = 'ميزانية التشغيل السنوية والخطة المالية',
+  documentTitle: documentTitleProp,
   documentNumber = '#DOC-2026-03',
-  department = 'إدارة الموارد المالية',
+  department: departmentProp,
 }) => {
+  const { lang, t } = useLanguage();
+  const documentTitle = documentTitleProp ?? t('indicators.approved.fallbackTitle');
+  const department = departmentProp ?? t('indicators.approved.fallbackDepartment');
   const [isPublished, setIsPublished] = useState(false);
 
   if (!isOpen) return null;
@@ -34,30 +66,11 @@ export const ApprovedCertificateModal: React.FC<ApprovedCertificateModalProps> =
     onClose();
   };
 
-  const approvedSigners = [
-    {
-      id: 's-1',
-      name: 'د. عبد الله السالم',
-      role: 'مدير إدارة الموارد المالية (الشؤون المالية)',
-      signedAt: '2026-09-18 09:15 ص',
-    },
-    {
-      id: 's-2',
-      name: 'أ. سارة المنصور',
-      role: 'المستشار القانوني العام (الشؤون القانونية)',
-      signedAt: '2026-09-18 11:30 ص',
-    },
-    {
-      id: 's-3',
-      name: 'م. خالد التميمي',
-      role: 'رئيس قسم تقنية المعلومات والمشاريع (الإدارة العليا)',
-      signedAt: '2026-09-18 02:45 م',
-    },
-  ];
+  const approvedSigners = localize<ApprovedSigner[]>(localizedApprovedSigners, lang);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-sm animate-in fade-in">
-      <div className="bg-white rounded-2xl border border-slate-300 shadow-2xl max-w-xl w-full p-6 text-right space-y-5">
+      <div className="bg-white rounded-2xl border border-slate-300 shadow-2xl max-w-xl w-full p-6 text-start space-y-5">
         
         {/* Header */}
         <div className="flex items-center justify-between border-b border-slate-100 pb-3">
@@ -67,10 +80,10 @@ export const ApprovedCertificateModal: React.FC<ApprovedCertificateModalProps> =
             </div>
             <div>
               <h3 className="font-black text-slate-900 text-base">
-                تصريح النشر الرسمي للمستند
+                {t('modals.certificate.title')}
               </h3>
               <p className="text-xs text-slate-500 font-normal">
-                تمت مراجعة الأثر الرقمي واستيفاء كافة التواقيع الحوكمية بنجاح، المستند مصرح بالنشر الآن.
+                {t('modals.certificate.subtitle')}
               </p>
             </div>
           </div>
@@ -87,39 +100,39 @@ export const ApprovedCertificateModal: React.FC<ApprovedCertificateModalProps> =
           <div className="space-y-4">
             
             {/* 1. بيانات المستند المعتمد المطابقة تماماً لصفحة المعتمد */}
-            <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-1 text-right">
+            <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-1 text-start">
               <div className="text-xs sm:text-sm font-bold text-slate-900">
                 {documentTitle}
               </div>
               <p className="text-xs text-slate-600 font-normal">
-                القسم المختص: {department}
+                {formatNodes(t('modals.certificate.competentSection'), { department })}
               </p>
               <p className="text-xs text-slate-500 font-normal">
-                الرمز المرجعي: <span className="font-mono font-bold text-slate-700">{documentNumber}</span>
+                {`${t('common.referenceCode')} `}<span className="font-mono font-bold text-slate-700">{documentNumber}</span>
               </p>
             </div>
 
             {/* 2. إشارة الجاهزية للنشر وتأكيد الامتثال (بدون أي رموز تشفير معقدة HASH) */}
-            <div className="p-3.5 rounded-xl bg-emerald-50/60 border border-emerald-200/80 text-right space-y-1">
+            <div className="p-3.5 rounded-xl bg-emerald-50/60 border border-emerald-200/80 text-start space-y-1">
               <div className="text-xs font-bold text-emerald-950 flex items-center gap-1.5">
                 <Check className="w-3.5 h-3.5 text-emerald-700" />
-                <span>إشارة الجاهزية للنشر: مستوفٍ لكافة المعايير ومصرح بالنشر الرسمي</span>
+                <span>{t('modals.certificate.readinessTitle')}</span>
               </div>
               <p className="text-xs text-emerald-900/80 leading-relaxed font-normal">
-                تم التحقق من اكتمال الأثر الرقمي ومطابقة المادة (12) من لائحة الحوكمة والاعتماد الرقمي، المستند جاهز للإطلاق والنشر فوراً.
+                {t('modals.certificate.readinessBody')}
               </p>
             </div>
 
             {/* 3. عرض ملخص التواقيع المكتملة بنفس المسميات المعتمدة في سجل الاطلاع */}
             <div>
               <label className="text-xs font-bold text-slate-700 block mb-2">
-                ملخص التواقيع المكتملة:
+                {t('modals.certificate.signaturesSummary')}
               </label>
               <div className="space-y-2">
                 {approvedSigners.map((signer, idx) => (
                   <div 
                     key={signer.id}
-                    className="p-2.5 rounded-xl border border-slate-200 bg-slate-50/70 flex items-center justify-between gap-3 text-right"
+                    className="p-2.5 rounded-xl border border-slate-200 bg-slate-50/70 flex items-center justify-between gap-3 text-start"
                   >
                     <div className="space-y-0.5">
                       <div className="text-xs font-bold text-slate-900 flex items-center gap-2">
@@ -134,7 +147,7 @@ export const ApprovedCertificateModal: React.FC<ApprovedCertificateModalProps> =
                     <div className="shrink-0 flex items-center gap-2">
                       <span className="inline-flex items-center gap-1.5 text-[11px] font-medium px-2.5 py-1 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-900">
                         <UserCheck className="w-3.5 h-3.5 text-emerald-700" />
-                        <span>تم الاطلاع والتوقيع</span>
+                        <span>{t('common.viewedAndSigned')}</span>
                       </span>
                       <span className="text-[10px] text-slate-500 font-mono hidden sm:inline">
                         {signer.signedAt}
@@ -152,7 +165,7 @@ export const ApprovedCertificateModal: React.FC<ApprovedCertificateModalProps> =
                 onClick={handleClose}
                 className="px-4 py-2.5 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
               >
-                إلغاء
+                {t('common.cancel')}
               </button>
               
               <button
@@ -160,7 +173,7 @@ export const ApprovedCertificateModal: React.FC<ApprovedCertificateModalProps> =
                 onClick={handleConfirmPublish}
                 className="px-5 py-2.5 rounded-xl text-xs font-bold bg-[#2C3E28] hover:bg-[#233220] active:scale-95 text-white shadow-md shadow-[#2C3E28]/20 flex items-center gap-2 transition-all cursor-pointer"
               >
-                <span>تأكيد وإطلاق النشر</span>
+                <span>{t('modals.certificate.confirm')}</span>
                 <Check className="w-4 h-4 text-white" />
               </button>
             </div>
@@ -175,10 +188,10 @@ export const ApprovedCertificateModal: React.FC<ApprovedCertificateModalProps> =
 
             <div className="space-y-1">
               <h4 className="text-base font-black text-slate-900">
-                تم إطلاق ونشر المستند رسمياً بنجاح
+                {t('modals.certificate.successTitle')}
               </h4>
               <p className="text-xs text-slate-500 max-w-md mx-auto leading-relaxed">
-                تم إصدار تصريح النشر النهائي وتعميم المستند في السجل الرسمي للمنظومة وفق أعلى معايير الحوكمة والامتثال.
+                {t('modals.certificate.successBody')}
               </p>
             </div>
 
@@ -187,7 +200,7 @@ export const ApprovedCertificateModal: React.FC<ApprovedCertificateModalProps> =
                 onClick={handleClose}
                 className="px-6 py-2.5 rounded-xl bg-[#2C3E28] text-white text-xs font-bold hover:bg-[#233220] transition-colors cursor-pointer"
               >
-                إغلاق
+                {t('common.close')}
               </button>
             </div>
           </div>

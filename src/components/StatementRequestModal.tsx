@@ -9,6 +9,7 @@ import {
   AlertCircle
 } from 'lucide-react';
 import { DocumentDossier } from '../types';
+import { useLanguage } from '../i18n';
 
 interface StatementRequestModalProps {
   isOpen: boolean;
@@ -21,12 +22,13 @@ export const StatementRequestModal: React.FC<StatementRequestModalProps> = ({
   onClose,
   document,
 }) => {
+  const { t } = useLanguage();
   const [isSent, setIsSent] = useState(false);
-  const [questions] = useState([
-    'بيان أسباب ومبررات توقيع كراسة الشروط والمواصفات (#DOC-2026-01) منفرداً دون استيفاء مصفوفة التواقيع الإلزامية.',
-    'توضيح السند الإداري في تخطي توقيع الإدارة القانونية والإدارة المالية قبل طلب اعتماد ونشر المستند.',
-    'الإفصاح عن المبرر الإجرائي لطلب نشر المستند خارج تسلسل الاعتماد المعتمد في لائحة الحوكمة.'
-  ]);
+  const questions = [
+    t('modals.statement.question1'),
+    t('modals.statement.question2'),
+    t('modals.statement.question3')
+  ];
 
   if (!isOpen) return null;
 
@@ -36,7 +38,7 @@ export const StatementRequestModal: React.FC<StatementRequestModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-sm animate-in fade-in">
-      <div className="bg-white rounded-2xl border border-slate-300 shadow-2xl max-w-xl w-full p-6 text-right space-y-5">
+      <div className="bg-white rounded-2xl border border-slate-300 shadow-2xl max-w-xl w-full p-6 text-start space-y-5">
         
         {/* Header */}
         <div className="flex items-center justify-between border-b border-slate-100 pb-3">
@@ -46,10 +48,10 @@ export const StatementRequestModal: React.FC<StatementRequestModalProps> = ({
             </div>
             <div>
               <h3 className="font-black text-slate-900 text-base">
-                طلب إفادة رسمية
+                {t('modals.statement.title')}
               </h3>
               <p className="text-xs text-slate-500">
-                وفقاً لسياسة الحوكمة والامتثال الداخلي وقواعد التحقيق الإداري
+                {t('modals.statement.subtitle')}
               </p>
             </div>
           </div>
@@ -69,8 +71,8 @@ export const StatementRequestModal: React.FC<StatementRequestModalProps> = ({
             <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between text-xs">
               <div className="flex items-center gap-2">
                 <User className="w-4 h-4 text-slate-500" />
-                <span className="text-slate-500">الموظف المطلوب للإفادة:</span>
-                <strong className="text-slate-900">أحمد خالد (مدير إدارة تقنية المعلومات)</strong>
+                <span className="text-slate-500">{t('modals.statement.recipientLabel')}</span>
+                <strong className="text-slate-900">{t('modals.statement.recipientName')}</strong>
               </div>
               <span className="text-slate-400 font-mono text-[11px]">Emp #1042</span>
             </div>
@@ -78,7 +80,7 @@ export const StatementRequestModal: React.FC<StatementRequestModalProps> = ({
             {/* Questions to answer */}
             <div>
               <label className="text-xs font-bold text-slate-700 block mb-2">
-                الأسئلة ومحاور الاستفسار الواجب الإجابة عليها كتابيًا:
+                {t('modals.statement.questionsLabel')}
               </label>
               <div className="space-y-2">
                 {questions.map((q, idx) => (
@@ -96,11 +98,11 @@ export const StatementRequestModal: React.FC<StatementRequestModalProps> = ({
             <div className="flex items-center justify-between text-xs p-3 rounded-xl bg-red-50/70 border border-red-200 text-red-900">
               <div className="flex items-center gap-2">
                 <Clock className="w-4 h-4 text-red-600" />
-                <span className="font-bold">المهلة النظامية للرد وتقديم الإفادة:</span>
+                <span className="font-bold">{t('modals.statement.deadlineLabel')}</span>
               </div>
               <div className="flex items-center gap-2 font-bold">
-                <span>يوم عمل واحد</span>
-                <span className="text-[10px] text-red-700">(تنتهي غداً 05:40 ص)</span>
+                <span>{t('modals.statement.deadlineValue')}</span>
+                <span className="text-[10px] text-red-700">{t('modals.statement.deadlineNote')}</span>
               </div>
             </div>
 
@@ -110,7 +112,7 @@ export const StatementRequestModal: React.FC<StatementRequestModalProps> = ({
                 onClick={onClose}
                 className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100 cursor-pointer"
               >
-                إلغاء
+                {t('common.cancel')}
               </button>
               
               <button
@@ -118,7 +120,7 @@ export const StatementRequestModal: React.FC<StatementRequestModalProps> = ({
                 className="px-5 py-2.5 rounded-xl bg-[#2C3E28] hover:bg-[#233220] text-white text-xs font-bold shadow-md flex items-center gap-2 transition-all cursor-pointer"
               >
                 <Send className="w-4 h-4 text-white" />
-                <span>إرسال طلب الإفادة</span>
+                <span>{t('modals.statement.send')}</span>
               </button>
             </div>
 
@@ -132,10 +134,10 @@ export const StatementRequestModal: React.FC<StatementRequestModalProps> = ({
 
             <div className="space-y-1">
               <h4 className="text-base font-black text-slate-900">
-                تم إرسال طلب الإفادة الرسمية وإشعار الموظف
+                {t('modals.statement.successTitle')}
               </h4>
               <p className="text-xs text-slate-500 max-w-md mx-auto leading-relaxed">
-                تم تجميد صلاحيات التعديل على المنظومة وتوجيه خطاب الاستيضاح إلى البريد الإلكتروني الرسمي وبوابة الموظف، مع ربط مهلة الرد بملف التدقيق الجنائي.
+                {t('modals.statement.successBody')}
               </p>
             </div>
 
@@ -144,7 +146,7 @@ export const StatementRequestModal: React.FC<StatementRequestModalProps> = ({
                 onClick={onClose}
                 className="px-6 py-2.5 rounded-xl bg-[#2C3E28] hover:bg-[#233220] text-white text-xs font-bold transition-colors cursor-pointer"
               >
-                إغلاق
+                {t('common.close')}
               </button>
             </div>
           </div>

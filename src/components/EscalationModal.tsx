@@ -11,6 +11,7 @@ import {
   Download
 } from 'lucide-react';
 import { DocumentDossier } from '../types';
+import { useLanguage } from '../i18n';
 
 interface EscalationModalProps {
   isOpen: boolean;
@@ -25,6 +26,7 @@ export const EscalationModal: React.FC<EscalationModalProps> = ({
   document,
   onConfirmEscalate,
 }) => {
+  const { t } = useLanguage();
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [urgencyLevel, setUrgencyLevel] = useState<'high' | 'critical'>('critical');
   const [escalationTarget, setEscalationTarget] = useState({
@@ -32,9 +34,9 @@ export const EscalationModal: React.FC<EscalationModalProps> = ({
     nazaha: true,
     internalAudit: true,
   });
-  const [auditorNotes, setAuditorNotes] = useState(
-    'إحالة رسمية لرصد مخالفة اعتماد كراسة الشروط والمواصفات (#DOC-2026-01) بتوقيع منفرد وتخطي سلسلة الاعتماد الإلزامية في لائحة الحوكمة.'
-  );
+  // null = untouched, so the default notes follow the current language
+  const [auditorNotesDraft, setAuditorNotes] = useState<string | null>(null);
+  const auditorNotes = auditorNotesDraft ?? t('modals.escalation.defaultNotes');
 
   if (!isOpen) return null;
 
@@ -47,7 +49,7 @@ export const EscalationModal: React.FC<EscalationModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-sm animate-in fade-in">
-      <div className="bg-white rounded-2xl border border-slate-300 shadow-2xl max-w-xl w-full p-6 text-right space-y-5">
+      <div className="bg-white rounded-2xl border border-slate-300 shadow-2xl max-w-xl w-full p-6 text-start space-y-5">
         
         {/* Header */}
         <div className="flex items-center justify-between border-b border-slate-100 pb-3">
@@ -57,10 +59,10 @@ export const EscalationModal: React.FC<EscalationModalProps> = ({
             </div>
             <div>
               <h3 className="font-black text-slate-900 text-base">
-                إحالة وتصعيد المخالفة
+                {t('modals.escalation.title')}
               </h3>
               <p className="text-xs text-slate-500 font-mono">
-                كود الإحالة: ESC-2026-9082-CRIMINAL
+                {t('modals.escalation.code')}
               </p>
             </div>
           </div>
@@ -79,7 +81,7 @@ export const EscalationModal: React.FC<EscalationModalProps> = ({
             {/* Target Entities */}
             <div>
               <label className="text-xs font-bold text-slate-700 block mb-2">
-                الجهات المستهدفة بالإحالة الرسمية:
+                {t('modals.escalation.targetsLabel')}
               </label>
               <div className="space-y-2">
                 <label className="flex items-center gap-2.5 p-2.5 rounded-xl border border-slate-200 bg-slate-50 text-xs font-medium cursor-pointer">
@@ -89,7 +91,7 @@ export const EscalationModal: React.FC<EscalationModalProps> = ({
                     onChange={(e) => setEscalationTarget({ ...escalationTarget, legalDept: e.target.checked })}
                     className="rounded text-[#2C3E28] focus:ring-[#2C3E28] w-4 h-4"
                   />
-                  <span>الإدارة العامة للشؤون القانونية (فتح تحقيق إداري عاجل)</span>
+                  <span>{t('modals.escalation.targetLegal')}</span>
                 </label>
 
                 <label className="flex items-center gap-2.5 p-2.5 rounded-xl border border-slate-200 bg-slate-50 text-xs font-medium cursor-pointer">
@@ -99,7 +101,7 @@ export const EscalationModal: React.FC<EscalationModalProps> = ({
                     onChange={(e) => setEscalationTarget({ ...escalationTarget, nazaha: e.target.checked })}
                     className="rounded text-[#2C3E28] focus:ring-[#2C3E28] w-4 h-4"
                   />
-                  <span>هيئة الرقابة ومكافحة الفساد (نزاهة) - إشعار اشتباه المادة (16)</span>
+                  <span>{t('modals.escalation.targetNazaha')}</span>
                 </label>
 
                 <label className="flex items-center gap-2.5 p-2.5 rounded-xl border border-slate-200 bg-slate-50 text-xs font-medium cursor-pointer">
@@ -109,7 +111,7 @@ export const EscalationModal: React.FC<EscalationModalProps> = ({
                     onChange={(e) => setEscalationTarget({ ...escalationTarget, internalAudit: e.target.checked })}
                     className="rounded text-[#2C3E28] focus:ring-[#2C3E28] w-4 h-4"
                   />
-                  <span>اللجنة العليا للمراجعة والتدقيق الداخلي</span>
+                  <span>{t('modals.escalation.targetInternalAudit')}</span>
                 </label>
               </div>
             </div>
@@ -117,7 +119,7 @@ export const EscalationModal: React.FC<EscalationModalProps> = ({
             {/* Auditor Notes */}
             <div>
               <label className="text-xs font-bold text-slate-700 block mb-1">
-                ملاحظات تقرير الفحص المرفق:
+                {t('modals.escalation.notesLabel')}
               </label>
               <textarea
                 value={auditorNotes}
@@ -131,7 +133,7 @@ export const EscalationModal: React.FC<EscalationModalProps> = ({
             <div className="p-3 rounded-xl bg-slate-100 border border-slate-200 text-[11px] text-slate-600 flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <FileText className="w-4 h-4 text-slate-500" />
-                <span>مرفق تلقائي: ملف الأدلة الرقمية الجنائية مع البصمات (3 أدلة موثقة)</span>
+                <span>{t('modals.escalation.attachment')}</span>
               </div>
               <span className="font-mono text-slate-800 font-bold">SHA-256 SEALED</span>
             </div>
@@ -142,7 +144,7 @@ export const EscalationModal: React.FC<EscalationModalProps> = ({
                 onClick={onClose}
                 className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100 cursor-pointer"
               >
-                إلغاء
+                {t('common.cancel')}
               </button>
               
               <button
@@ -150,7 +152,7 @@ export const EscalationModal: React.FC<EscalationModalProps> = ({
                 className="px-5 py-2.5 rounded-xl bg-[#2C3E28] hover:bg-[#233220] text-white text-xs font-bold shadow-md flex items-center gap-2 transition-all cursor-pointer"
               >
                 <Send className="w-4 h-4 text-white" />
-                <span>تأكيد الإحالة والإرسال</span>
+                <span>{t('modals.escalation.confirm')}</span>
               </button>
             </div>
 
@@ -164,10 +166,10 @@ export const EscalationModal: React.FC<EscalationModalProps> = ({
 
             <div className="space-y-1">
               <h4 className="text-base font-black text-slate-900">
-                تم تصعيد الملف وتوليد محضر الإحالة بنجاح
+                {t('modals.escalation.successTitle')}
               </h4>
               <p className="text-xs text-slate-500 max-w-md mx-auto leading-relaxed">
-                تم تجميد حساب الموظف المشتبه به مؤقتاً، وتمرير كامل ملف الأدلة المشفرة للإدارة القانونية وهيئة مكافحة الفساد برقم قيد إلكتروني:
+                {t('modals.escalation.successBody')}
               </p>
               <div className="font-mono text-xs font-bold bg-slate-100 text-slate-800 py-1.5 px-3 rounded-lg inline-block mt-2">
                 REF: NZH-2026-9082-CRIM-019
@@ -179,7 +181,7 @@ export const EscalationModal: React.FC<EscalationModalProps> = ({
                 onClick={onClose}
                 className="px-6 py-2.5 rounded-xl bg-[#2C3E28] text-white text-xs font-bold hover:bg-[#233220] transition-colors cursor-pointer"
               >
-                إغلاق
+                {t('common.close')}
               </button>
             </div>
           </div>

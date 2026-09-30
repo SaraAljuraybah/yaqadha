@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { 
   Lock, 
   Search, 
   CheckCircle2 
 } from 'lucide-react';
+import { formatNodes, Localizable, localize, useLanguage } from '../i18n';
 
 interface UserRole {
   id: string;
@@ -18,121 +19,123 @@ interface UserRole {
   note?: string;
 }
 
-const mockUsers: UserRole[] = [
+const localizedUsers: Localizable<UserRole>[] = [
   {
     id: 'u-1',
-    name: 'د. فهد الهذلي',
-    role: 'مراقب عام تنفيذي',
-    department: 'أمانة الرقابة والحوكمة',
+    name: { ar: 'د. فهد الهذلي', en: 'Dr. Fahad Al-Hudhali' },
+    role: { ar: 'مراقب عام تنفيذي', en: 'Executive Chief Auditor' },
+    department: { ar: 'أمانة الرقابة والحوكمة', en: 'Oversight & Governance Secretariat' },
     accessLevel: 'full_audit',
-    accessLevelLabel: 'رقابة كاملة وتجميد وثائق',
+    accessLevelLabel: { ar: 'رقابة كاملة وتجميد وثائق', en: 'Full oversight & document freezing' },
     twoFactor: true,
     status: 'active',
-    lastActive: 'الآن (متصل)',
+    lastActive: { ar: 'الآن (متصل)', en: 'Now (online)' },
   },
   {
     id: 'u-2',
-    name: 'أ. أحمد الخالد',
-    role: 'مدير إدارة تقنية المعلومات (المُعد)',
-    department: 'إدارة تقنية المعلومات',
+    name: { ar: 'أ. أحمد الخالد', en: 'Mr. Ahmed Al-Khaled' },
+    role: { ar: 'مدير إدارة تقنية المعلومات (المُعد)', en: 'Director of Information Technology (Preparer)' },
+    department: { ar: 'إدارة تقنية المعلومات', en: 'Information Technology Department' },
     accessLevel: 'technical_spec',
-    accessLevelLabel: 'إعداد كراسات ومشاريع',
+    accessLevelLabel: { ar: 'إعداد كراسات ومشاريع', en: 'Booklet & project preparation' },
     twoFactor: true,
     status: 'restricted',
     lastActive: '2026-09-15 08:32',
-    note: 'موقوف مؤقتاً',
+    note: { ar: 'موقوف مؤقتاً', en: 'Temporarily suspended' },
   },
   {
     id: 'u-3',
-    name: 'د. طارق المنصور',
-    role: 'رئيس قسم المالية والميزانية',
-    department: 'الشؤون المالية',
+    name: { ar: 'د. طارق المنصور', en: 'Dr. Tariq Al-Mansour' },
+    role: { ar: 'رئيس قسم المالية والميزانية', en: 'Head of Finance & Budget' },
+    department: { ar: 'الشؤون المالية', en: 'Financial Affairs' },
     accessLevel: 'financial_approval',
-    accessLevelLabel: 'اعتماد الميزانيات والصرف والتحقيق',
+    accessLevelLabel: { ar: 'اعتماد الميزانيات والصرف والتحقيق', en: 'Budget, disbursement & investigation approval' },
     twoFactor: true,
     status: 'active',
-    lastActive: 'منذ ساعة',
+    lastActive: { ar: 'منذ ساعة', en: '1 hour ago' },
   },
   {
     id: 'u-4',
-    name: 'أ. نورة الشمري',
-    role: 'المستشار القانوني العام',
-    department: 'الإدارة القانونية',
+    name: { ar: 'أ. نورة الشمري', en: 'Ms. Noura Al-Shammari' },
+    role: { ar: 'المستشار القانوني العام', en: 'General Legal Counsel' },
+    department: { ar: 'الإدارة القانونية', en: 'Legal Department' },
     accessLevel: 'legal_compliance',
-    accessLevelLabel: 'مطابقة نظامية وفحص عقود',
+    accessLevelLabel: { ar: 'مطابقة نظامية وفحص عقود', en: 'Regulatory compliance & contract review' },
     twoFactor: true,
     status: 'active',
-    lastActive: 'منذ 3 ساعات',
+    lastActive: { ar: 'منذ 3 ساعات', en: '3 hours ago' },
   },
   {
     id: 'u-5',
-    name: 'د. عبد الله الغامدي',
-    role: 'نائب الرئيس التنفيذي للتشغيل',
-    department: 'الإدارة العليا',
+    name: { ar: 'د. عبد الله الغامدي', en: 'Dr. Abdullah Al-Ghamdi' },
+    role: { ar: 'نائب الرئيس التنفيذي للتشغيل', en: 'Deputy CEO for Operations' },
+    department: { ar: 'الإدارة العليا', en: 'Executive Management' },
     accessLevel: 'executive_signature',
-    accessLevelLabel: 'اعتماد نهائي وإذن نشر',
+    accessLevelLabel: { ar: 'اعتماد نهائي وإذن نشر', en: 'Final approval & publishing authorization' },
     twoFactor: true,
     status: 'active',
-    lastActive: 'منذ ساعتين',
+    lastActive: { ar: 'منذ ساعتين', en: '2 hours ago' },
   },
   {
     id: 'u-6',
-    name: 'أ. خالد السليمان',
-    role: 'مدير عام تقنية المعلومات',
-    department: 'إدارة تقنية المعلومات',
+    name: { ar: 'أ. خالد السليمان', en: 'Mr. Khalid Al-Sulaiman' },
+    role: { ar: 'مدير عام تقنية المعلومات', en: 'General Manager of Information Technology' },
+    department: { ar: 'إدارة تقنية المعلومات', en: 'Information Technology Department' },
     accessLevel: 'executive_signature',
-    accessLevelLabel: 'إشراف وتأييد الاحتياج التقني',
+    accessLevelLabel: { ar: 'إشراف وتأييد الاحتياج التقني', en: 'Oversight & endorsement of technical needs' },
     twoFactor: true,
     status: 'active',
-    lastActive: 'اليوم، 11:20 ص',
+    lastActive: { ar: 'اليوم، 11:20 ص', en: 'Today, 11:20 AM' },
   },
   {
     id: 'u-7',
-    name: 'سعد عبد الرحمن الخالدي',
-    role: 'أخصائي مطابقة فواتير',
-    department: 'الشؤون المالية',
+    name: { ar: 'سعد عبد الرحمن الخالدي', en: 'Saad Abdulrahman Al-Khalidi' },
+    role: { ar: 'أخصائي مطابقة فواتير', en: 'Invoice Reconciliation Specialist' },
+    department: { ar: 'الشؤون المالية', en: 'Financial Affairs' },
     accessLevel: 'financial_approval',
-    accessLevelLabel: 'إعداد ومطابقة تسويات مالية',
+    accessLevelLabel: { ar: 'إعداد ومطابقة تسويات مالية', en: 'Financial settlement preparation & reconciliation' },
     twoFactor: true,
     status: 'active',
-    lastActive: 'أمس 01:10 م',
+    lastActive: { ar: 'أمس 01:10 م', en: 'Yesterday 01:10 PM' },
   },
   {
     id: 'u-8',
-    name: 'أمل مساعد المطيري',
-    role: 'محاسب مدفوعات',
-    department: 'الشؤون المالية',
+    name: { ar: 'أمل مساعد المطيري', en: 'Amal Musaed Al-Mutairi' },
+    role: { ar: 'محاسب مدفوعات', en: 'Payments Accountant' },
+    department: { ar: 'الشؤون المالية', en: 'Financial Affairs' },
     accessLevel: 'financial_approval',
-    accessLevelLabel: 'صرف وتسويات بنكية',
+    accessLevelLabel: { ar: 'صرف وتسويات بنكية', en: 'Disbursements & bank settlements' },
     twoFactor: true,
     status: 'active',
-    lastActive: 'أمس 02:35 م',
+    lastActive: { ar: 'أمس 02:35 م', en: 'Yesterday 02:35 PM' },
   },
   {
     id: 'u-9',
-    name: 'أ. عادل الرشيدي',
-    role: 'مدير إدارة الشؤون الإدارية والأرشفة',
-    department: 'الشؤون الإدارية',
+    name: { ar: 'أ. عادل الرشيدي', en: 'Mr. Adel Al-Rashidi' },
+    role: { ar: 'مدير إدارة الشؤون الإدارية والأرشفة', en: 'Director of Administrative Affairs & Archiving' },
+    department: { ar: 'الشؤون الإدارية', en: 'Administrative Affairs' },
     accessLevel: 'executive_signature',
-    accessLevelLabel: 'إدارة السجلات ولجان الإتلاف',
+    accessLevelLabel: { ar: 'إدارة السجلات ولجان الإتلاف', en: 'Records management & disposal committees' },
     twoFactor: true,
     status: 'active',
-    lastActive: 'منذ يومين',
+    lastActive: { ar: 'منذ يومين', en: '2 days ago' },
   },
   {
     id: 'u-10',
-    name: 'أ. نورة الدوسري',
-    role: 'أخصائي تدقيق داخلي',
-    department: 'المراجعة والامتثال',
+    name: { ar: 'أ. نورة الدوسري', en: 'Ms. Noura Al-Dosari' },
+    role: { ar: 'أخصائي تدقيق داخلي', en: 'Internal Audit Specialist' },
+    department: { ar: 'المراجعة والامتثال', en: 'Audit & Compliance' },
     accessLevel: 'internal_audit',
-    accessLevelLabel: 'تدقيق الأثر الرقمي والمطابقة',
+    accessLevelLabel: { ar: 'تدقيق الأثر الرقمي والمطابقة', en: 'Digital footprint audit & compliance' },
     twoFactor: true,
     status: 'active',
-    lastActive: 'اليوم، 10:45 ص',
+    lastActive: { ar: 'اليوم، 10:45 ص', en: 'Today, 10:45 AM' },
   },
 ];
 
 export const AccessManagementScreen: React.FC = () => {
+  const { lang, t } = useLanguage();
+  const mockUsers = useMemo(() => localize<UserRole[]>(localizedUsers, lang), [lang]);
   const [filterRole, setFilterRole] = useState<'all' | 'audit' | 'signers' | 'restricted'>('all');
   const [searchUser, setSearchUser] = useState('');
 
@@ -146,7 +149,7 @@ export const AccessManagementScreen: React.FC = () => {
     if (filterRole === 'restricted' && u.status !== 'restricted') return false;
     if (searchUser) {
       const q = searchUser.toLowerCase();
-      const statusLabel = u.status === 'restricted' ? 'موقوف مقيد' : 'نشط مصرح';
+      const statusLabel = u.status === 'restricted' ? t('accessManagement.searchStatusRestricted') : t('accessManagement.searchStatusActive');
       return (
         u.name.toLowerCase().includes(q) ||
         u.role.toLowerCase().includes(q) ||
@@ -160,15 +163,15 @@ export const AccessManagementScreen: React.FC = () => {
   });
 
   return (
-    <div id="access-management-screen" className="space-y-6 text-right">
+    <div id="access-management-screen" className="space-y-6 text-start">
       
       {/* 1. Header Title & Introduction */}
       <div className="pt-1">
         <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
-          إدارة الحسابات والصلاحيات
+          {t('accessManagement.title')}
         </h1>
         <p className="text-xs sm:text-sm font-normal text-slate-600 mt-1">
-          لوحة المتابعة الشاملة للحسابات والصلاحيات
+          {t('accessManagement.subtitle')}
         </p>
       </div>
 
@@ -180,20 +183,20 @@ export const AccessManagementScreen: React.FC = () => {
           
           {/* 1. جهة اليمين (50% من العرض): حقل البحث المتسع والمريح */}
           <div className="relative w-full h-11">
-            <Search className="w-4.5 h-4.5 text-[#2C3E28] absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <Search className="w-4.5 h-4.5 text-[#2C3E28] absolute start-4 top-1/2 -translate-y-1/2 pointer-events-none" />
             <input
               id="users-table-toolbar-search-input"
               type="text"
               value={searchUser}
               onChange={(e) => setSearchUser(e.target.value)}
-              placeholder="بحث بالاسم، المنصب، الإدارة، أو مستوى الصلاحية..."
-              className="w-full h-11 pr-11 pl-9 text-xs sm:text-sm font-normal text-slate-800 rounded-2xl border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-[#2C3E28] focus:border-[#2C3E28] transition-all shadow-2xs placeholder:text-slate-400 box-border"
+              placeholder={t('accessManagement.searchPlaceholder')}
+              className="w-full h-11 ps-11 pe-9 text-xs sm:text-sm font-normal text-slate-800 rounded-2xl border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-[#2C3E28] focus:border-[#2C3E28] transition-all shadow-2xs placeholder:text-slate-400 box-border"
             />
             {searchUser && (
               <button
                 onClick={() => setSearchUser('')}
-                className="absolute left-3.5 top-1/2 -translate-y-1/2 text-xs text-slate-400 hover:text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-full w-5 h-5 flex items-center justify-center transition-all"
-                title="مسح البحث"
+                className="absolute end-3.5 top-1/2 -translate-y-1/2 text-xs text-slate-400 hover:text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-full w-5 h-5 flex items-center justify-center transition-all"
+                title={t('common.clearSearch')}
               >
                 ✕
               </button>
@@ -210,7 +213,7 @@ export const AccessManagementScreen: React.FC = () => {
                   : 'text-slate-700 hover:text-slate-900 hover:bg-slate-100'
               }`}
             >
-              الكل ({mockUsers.length})
+              {formatNodes(t('accessManagement.filterAll'), { count: mockUsers.length })}
             </button>
             <button
               onClick={() => setFilterRole('signers')}
@@ -220,7 +223,7 @@ export const AccessManagementScreen: React.FC = () => {
                   : 'text-slate-700 hover:text-slate-900 hover:bg-slate-100'
               }`}
             >
-              المفوضون ({signersCount})
+              {formatNodes(t('accessManagement.filterSigners'), { count: signersCount })}
             </button>
             <button
               onClick={() => setFilterRole('audit')}
@@ -230,7 +233,7 @@ export const AccessManagementScreen: React.FC = () => {
                   : 'text-slate-700 hover:text-slate-900 hover:bg-slate-100'
               }`}
             >
-              المراقبون ({auditorsCount})
+              {formatNodes(t('accessManagement.filterAuditors'), { count: auditorsCount })}
             </button>
             <button
               onClick={() => setFilterRole('restricted')}
@@ -241,7 +244,7 @@ export const AccessManagementScreen: React.FC = () => {
               }`}
             >
               <span className="w-2 h-2 rounded-full bg-red-600 shrink-0"></span>
-              <span>المقيدة ({restrictedCount})</span>
+              <span>{formatNodes(t('accessManagement.filterRestricted'), { count: restrictedCount })}</span>
             </button>
           </div>
 
@@ -249,15 +252,15 @@ export const AccessManagementScreen: React.FC = () => {
 
         {/* Users Table Content */}
         <div className="overflow-x-auto">
-          <table className="w-full text-right border-collapse text-xs min-w-[960px]">
+          <table className="w-full text-start border-collapse text-xs min-w-[960px]">
             <thead>
               <tr className="border-b border-slate-200 bg-slate-100/80 text-slate-700 font-bold text-xs">
-                <th className="py-3.5 px-4 text-right">المسؤول / الحساب</th>
-                <th className="py-3.5 px-4 text-right">الإدارة والقسم</th>
-                <th className="py-3.5 px-4 text-right">مستوى الصلاحية المعتمد</th>
-                <th className="py-3.5 px-4 text-right">المصادقة الثنائية</th>
-                <th className="py-3.5 px-4 text-right">حالة الحساب</th>
-                <th className="py-3.5 px-4 text-right">آخر نشاط</th>
+                <th className="py-3.5 px-4 text-start">{t('accessManagement.colAccount')}</th>
+                <th className="py-3.5 px-4 text-start">{t('accessManagement.colDepartment')}</th>
+                <th className="py-3.5 px-4 text-start">{t('accessManagement.colAccessLevel')}</th>
+                <th className="py-3.5 px-4 text-start">{t('accessManagement.colTwoFactor')}</th>
+                <th className="py-3.5 px-4 text-start">{t('accessManagement.colStatus')}</th>
+                <th className="py-3.5 px-4 text-start">{t('accessManagement.colLastActive')}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -282,7 +285,7 @@ export const AccessManagementScreen: React.FC = () => {
                             ? 'bg-red-100 text-red-800 border-red-200 ring-2 ring-red-300' 
                             : 'bg-slate-100 text-slate-700 border-slate-200'
                         }`}>
-                          {user.name.split(' ')[1] ? user.name.split(' ')[1].charAt(0) : 'م'}
+                          {user.name.split(' ')[1] ? user.name.split(' ')[1].charAt(0) : t('accessManagement.avatarFallback')}
                         </div>
                         <div>
                           <div className="font-bold text-slate-900 text-xs">{user.name}</div>
@@ -317,7 +320,7 @@ export const AccessManagementScreen: React.FC = () => {
                     <td className="py-3.5 px-4 align-middle">
                       <span className="inline-flex items-center gap-1 text-emerald-700 font-normal text-xs">
                         <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                        <span>مفعلة (Hardware Token)</span>
+                        <span>{t('accessManagement.twoFactorEnabled')}</span>
                       </span>
                     </td>
 
@@ -326,12 +329,12 @@ export const AccessManagementScreen: React.FC = () => {
                       {isRestricted ? (
                         <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-red-100 text-red-800 border border-red-200">
                           <span className="w-2 h-2 rounded-full bg-red-600"></span>
-                          <span>موقوف مؤقتاً (رصد توقيع منفرد)</span>
+                          <span>{t('accessManagement.statusRestricted')}</span>
                         </span>
                       ) : (
                         <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
                           <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-                          <span>نشط ومصرح</span>
+                          <span>{t('accessManagement.statusActive')}</span>
                         </span>
                       )}
                     </td>
@@ -349,12 +352,12 @@ export const AccessManagementScreen: React.FC = () => {
                   <td colSpan={6} className="py-12 text-center text-slate-500">
                     <div className="flex flex-col items-center justify-center gap-2">
                       <Search className="w-8 h-8 text-slate-300" />
-                      <p className="text-sm font-medium">لا توجد حسابات مطابقة لبحثك</p>
+                      <p className="text-sm font-medium">{t('accessManagement.emptyState')}</p>
                       <button
                         onClick={() => { setSearchUser(''); setFilterRole('all'); }}
                         className="text-xs text-[#2C3E28] hover:underline font-bold mt-1"
                       >
-                        إعادة ضبط البحث والتصفية
+                        {t('accessManagement.resetFilters')}
                       </button>
                     </div>
                   </td>

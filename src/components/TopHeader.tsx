@@ -1,13 +1,14 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Bell, ShieldAlert, Clock, CheckCircle2, CheckCheck, X } from 'lucide-react';
 import { ThemeToggle } from './ThemeToggle';
+import { LanguageToggle } from './LanguageToggle';
+import { formatNodes, useLanguage } from '../i18n';
 
 interface NotificationItem {
   id: string;
   type: 'blocked' | 'review' | 'completed';
-  badge: string;
-  text: string;
-  time: string;
+  // Badge, text and time come from the dictionary (notifications.<messageKey>)
+  messageKey: 'blocked' | 'review';
   isUnread: boolean;
 }
 
@@ -16,22 +17,19 @@ interface TopHeaderProps {
 }
 
 export const TopHeader: React.FC<TopHeaderProps> = () => {
+  const { t } = useLanguage();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [notifications, setNotifications] = useState<NotificationItem[]>([
     {
       id: 'notif-1',
       type: 'blocked',
-      badge: 'حظر',
-      text: 'رصد مخالفة توقيع منفرد على كراسة الشروط والمواصفات (#DOC-2026-01)',
-      time: 'منذ 10 دقائق',
+      messageKey: 'blocked',
       isUnread: true,
     },
     {
       id: 'notif-2',
       type: 'review',
-      badge: 'طلب مراجعة',
-      text: 'مذكرة تسوية مستحقات توريد الأنظمة (#YQ-8841) بانتظار استكمال التواقيع',
-      time: 'منذ ساعة',
+      messageKey: 'review',
       isUnread: true,
     },
   ]);
@@ -71,11 +69,14 @@ export const TopHeader: React.FC<TopHeaderProps> = () => {
         {/* Theme Toggle (Light / Dark) */}
         <ThemeToggle />
 
+        {/* Language Toggle (Arabic / English) */}
+        <LanguageToggle />
+
         {/* Notification Bell with Dropdown Panel */}
         <div className="relative" ref={dropdownRef}>
           <button 
             id="btn-notifications-toggle"
-            title="التنبيهات"
+            title={t('header.notifications')}
             onClick={() => setIsDropdownOpen(!isDropdownOpen)}
             className={`relative p-2.5 rounded-2xl border transition-all shadow-2xs ${
               isDropdownOpen 
@@ -97,15 +98,15 @@ export const TopHeader: React.FC<TopHeaderProps> = () => {
           {isDropdownOpen && (
             <div 
               id="notifications-dropdown-panel"
-              className="absolute left-0 top-full mt-2.5 w-84 sm:w-96 bg-white rounded-3xl border border-slate-200 shadow-xl z-50 overflow-hidden text-right animate-in fade-in slide-in-from-top-2 duration-150"
+              className="absolute end-0 top-full mt-2.5 w-84 sm:w-96 bg-white rounded-3xl border border-slate-200 shadow-xl z-50 overflow-hidden text-start animate-in fade-in slide-in-from-top-2 duration-150"
             >
               {/* Header */}
               <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/70">
                 <div className="flex items-center gap-2">
-                  <span className="font-bold text-sm text-slate-900">التنبيهات</span>
+                  <span className="font-bold text-sm text-slate-900">{t('header.notifications')}</span>
                   {unreadCount > 0 && (
                     <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-red-100 text-red-700">
-                      {unreadCount} غير مقروء
+                      {formatNodes(t('header.unreadCount'), { count: unreadCount })}
                     </span>
                   )}
                 </div>
@@ -117,7 +118,7 @@ export const TopHeader: React.FC<TopHeaderProps> = () => {
                     className="flex items-center gap-1 text-[11px] font-bold text-[#2C3E28] hover:text-[#1E2B1B] transition-colors p-1 rounded-lg hover:bg-slate-200/60"
                   >
                     <CheckCheck className="w-3.5 h-3.5 text-[#2C3E28]" />
-                    <span>تحديد الكل كمقروء</span>
+                    <span>{t('header.markAllRead')}</span>
                   </button>
                 )}
               </div>
@@ -127,7 +128,7 @@ export const TopHeader: React.FC<TopHeaderProps> = () => {
                 {notifications.map((item) => (
                   <div
                     key={item.id}
-                    className={`p-4 transition-colors flex items-start gap-3 text-right ${
+                    className={`p-4 transition-colors flex items-start gap-3 text-start ${
                       item.isUnread ? 'bg-slate-50/90 hover:bg-slate-100/80' : 'hover:bg-slate-50/60'
                     }`}
                   >
@@ -162,15 +163,15 @@ export const TopHeader: React.FC<TopHeaderProps> = () => {
                               : 'bg-emerald-50 text-emerald-800 border border-emerald-200'
                           }`}
                         >
-                          {item.badge}
+                          {t(`notifications.${item.messageKey}.badge`)}
                         </span>
                         <span className="text-[10px] text-slate-400 font-medium">
-                          {item.time}
+                          {t(`notifications.${item.messageKey}.time`)}
                         </span>
                       </div>
 
                       <p className="text-xs font-semibold text-slate-800 leading-snug">
-                        {item.text}
+                        {t(`notifications.${item.messageKey}.text`)}
                       </p>
                     </div>
 
@@ -186,20 +187,20 @@ export const TopHeader: React.FC<TopHeaderProps> = () => {
         </div>
 
         {/* User Account / Profile Card */}
-        <div className="flex items-center gap-3 pl-1 pr-3 py-1.5 rounded-2xl bg-slate-50/80 border border-slate-200 shadow-2xs">
+        <div className="flex items-center gap-3 ps-3 pe-1 py-1.5 rounded-2xl bg-slate-50/80 border border-slate-200 shadow-2xs">
           <div className="relative">
             <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#2C3E28] to-[#1E2B1B] text-white flex items-center justify-center font-bold text-xs shadow-2xs">
-              ف.هـ
+              {t('header.userInitials')}
             </div>
             <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-500 rounded-full ring-2 ring-white"></span>
           </div>
 
-          <div className="flex flex-col text-right">
+          <div className="flex flex-col text-start">
             <span className="text-xs sm:text-sm font-bold text-slate-900 leading-tight">
-              د. فهد الهذلي
+              {t('header.userName')}
             </span>
             <span className="text-[11px] text-slate-500 font-medium">
-              مراقب عام تنفيذي
+              {t('header.userRole')}
             </span>
           </div>
         </div>

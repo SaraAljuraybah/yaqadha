@@ -22,9 +22,11 @@ import {
   X, 
   ShieldX
 } from 'lucide-react';
-import { DocumentDossier, FlaggedEvidence } from '../types';
+import { DocumentDossier, FlaggedEvidence, ViewerRecord } from '../types';
+import { formatNodes, Localizable, localize, useLanguage } from '../i18n';
 import { ReviewApprovalModal } from './ReviewApprovalModal';
 import { ApprovedCertificateModal } from './ApprovedCertificateModal';
+import { RiskAssessmentPanel } from './RiskAssessmentPanel';
 
 interface UnifiedIndicatorsScreenProps {
   yellowDocument: DocumentDossier;
@@ -40,6 +42,27 @@ interface UnifiedIndicatorsScreenProps {
   isRedEscalated?: boolean;
 }
 
+const fallbackViewers: Localizable<ViewerRecord>[] = [
+  {
+    id: 'v-1',
+    name: { ar: 'سعد عبد الرحمن الخالدي', en: 'Saad Abdulrahman Al-Khalidi' },
+    role: { ar: 'أخصائي مطابقة فواتير', en: 'Invoice Reconciliation Specialist' },
+    department: { ar: 'قسم المالية والميزانية', en: 'Finance & Budget Section' },
+    viewedAt: { ar: '2026-09-21 01:10 م', en: '2026-09-21 01:10 PM' },
+    timeSpent: { ar: '12 دقيقة', en: '12 minutes' },
+    ip: '10.20.1.15'
+  },
+  {
+    id: 'v-2',
+    name: { ar: 'أمل مساعد المطيري', en: 'Amal Musaed Al-Mutairi' },
+    role: { ar: 'محاسب مدفوعات', en: 'Payments Accountant' },
+    department: { ar: 'قسم المالية والميزانية', en: 'Finance & Budget Section' },
+    viewedAt: { ar: '2026-09-21 02:25 م', en: '2026-09-21 02:25 PM' },
+    timeSpent: { ar: '8 دقائق', en: '8 minutes' },
+    ip: '10.20.1.22'
+  }
+];
+
 export const UnifiedIndicatorsScreen: React.FC<UnifiedIndicatorsScreenProps> = ({
   yellowDocument,
   redDocument,
@@ -53,6 +76,7 @@ export const UnifiedIndicatorsScreen: React.FC<UnifiedIndicatorsScreenProps> = (
   onExportForensicReport,
   isRedEscalated = false,
 }) => {
+  const { lang, t } = useLanguage();
   const [selectedIndicator, setSelectedIndicator] = useState<'yellow' | 'red' | 'compliance'>(initialIndicator);
 
   const allDocs = documents || [redDocument, yellowDocument];
@@ -67,33 +91,14 @@ export const UnifiedIndicatorsScreen: React.FC<UnifiedIndicatorsScreenProps> = (
   }, [initialIndicator]);
 
   // --- Yellow State ---
-  const [investigationMeetingNote, setInvestigationMeetingNote] = useState(
-    'نقص في سجل الاطلاع الداخلي وعدم استكمال موافقة رئيس القسم المعني. الإجراء المعتمد: إعادة المستند للمُدخل لاستكمال التواقيع الإدارية وموافقة رئيس القسم تمهيداً للإذن بالنشر.'
-  );
+  // null = untouched, so the default note follows the current language
+  const [investigationMeetingNoteDraft, setInvestigationMeetingNote] = useState<string | null>(null);
+  const investigationMeetingNote = investigationMeetingNoteDraft ?? t('indicators.yellow.defaultNote');
   const [isYellowResolved, setIsYellowResolved] = useState(false);
 
   const viewersAndSigners = yellowDocument.viewers.slice(0, 2).length === 2 
     ? yellowDocument.viewers.slice(0, 2)
-    : [
-        {
-          id: 'v-1',
-          name: 'سعد عبد الرحمن الخالدي',
-          role: 'أخصائي مطابقة فواتير',
-          department: 'قسم المالية والميزانية',
-          viewedAt: '2026-09-21 01:10 م',
-          timeSpent: '12 دقيقة',
-          ip: '10.20.1.15'
-        },
-        {
-          id: 'v-2',
-          name: 'أمل مساعد المطيري',
-          role: 'محاسب مدفوعات',
-          department: 'قسم المالية والميزانية',
-          viewedAt: '2026-09-21 02:25 م',
-          timeSpent: '8 دقائق',
-          ip: '10.20.1.22'
-        }
-      ];
+    : localize<ViewerRecord[]>(fallbackViewers, lang);
 
   const [isReviewApprovalModalOpen, setIsReviewApprovalModalOpen] = useState(false);
   const [isApprovedModalOpen, setIsApprovedModalOpen] = useState(false);
@@ -113,48 +118,42 @@ export const UnifiedIndicatorsScreen: React.FC<UnifiedIndicatorsScreenProps> = (
   const redGov = redDocument.governance;
 
   const singleInvolvedUser = {
-    name: 'أ. أحمد الخالد',
-    role: 'مدير إدارة تقنية المعلومات (المُعد)',
-    department: 'إدارة تقنية المعلومات',
-    action: 'اطلع وطلب النشر فوراً بتوقيع منفرد (تجاوز سلسلة الاعتمادات الإلزامية)',
-    timestamp: '2026-09-15 08:32:19',
-    ipAddress: '192.168.10.45 (شبكة VPN)',
     violations: [
-      'توقيع منفرد وتخطي 3 مستويات رقابية إلزامية (المالية والقانونية والقيادية)',
-      'طلب نشر كراسة الشروط والمواصفات لمشروع التوسع التقني (#DOC-2026-01) دون اعتماد مالي وقانوني',
-      'مخالفة المادة (43) من لائحة المنافسات والمشتريات والاعتمادات الإدارية'
+      t('indicators.red.violation1'),
+      t('indicators.red.violation2'),
+      t('indicators.red.violation3')
     ]
   };
 
   return (
-    <div id="unified-indicators-screen" className="space-y-8 pb-28 text-right">
+    <div id="unified-indicators-screen" className="space-y-8 pb-28 text-start">
       
       {/* 1. Header Title & Subtitle (مستقل تماماً ومطابق لصفحتي سجل المستندات وإدارة الحسابات) */}
       <div className="pt-1">
         <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
-          مؤشرات المستندات
+          {t('indicators.title')}
         </h1>
         <p className="text-xs sm:text-sm font-normal text-slate-600 mt-1">
-          تحليل مؤشرات المستندات
+          {t('indicators.subtitle')}
         </p>
       </div>
 
       {/* 2. Interactive Metric Cards (محظور ، قيد المراجعة ، معتمد) على صف واحد */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-right">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-start">
         
         {/* 1. كرت محظور (الأحمر) */}
         <button
           id="switch-to-red-indicator-btn"
           type="button"
           onClick={() => setSelectedIndicator('red')}
-          className={`p-4 sm:p-5 rounded-3xl border text-right transition-all duration-200 cursor-pointer flex items-center gap-3 ${
+          className={`p-4 sm:p-5 rounded-3xl border text-start transition-all duration-200 cursor-pointer flex items-center gap-3 ${
             selectedIndicator === 'red'
               ? 'bg-red-50/70 border-red-500 ring-2 ring-red-400/30 shadow-xs'
               : 'bg-white border-slate-200 hover:border-red-300 hover:bg-slate-50/60 shadow-2xs'
           }`}
         >
           <span className="w-2.5 h-2.5 rounded-full bg-red-600 shrink-0"></span>
-          <span className="text-base sm:text-lg font-bold text-slate-900">محظور</span>
+          <span className="text-base sm:text-lg font-bold text-slate-900">{t('common.blocked')}</span>
           <span className="text-xl sm:text-2xl font-bold text-red-700 font-mono">{blockedCount}</span>
         </button>
 
@@ -163,14 +162,14 @@ export const UnifiedIndicatorsScreen: React.FC<UnifiedIndicatorsScreenProps> = (
           id="switch-to-yellow-indicator-btn"
           type="button"
           onClick={() => setSelectedIndicator('yellow')}
-          className={`p-4 sm:p-5 rounded-3xl border text-right transition-all duration-200 cursor-pointer flex items-center gap-3 ${
+          className={`p-4 sm:p-5 rounded-3xl border text-start transition-all duration-200 cursor-pointer flex items-center gap-3 ${
             selectedIndicator === 'yellow'
               ? 'bg-amber-50/70 border-amber-500 ring-2 ring-amber-400/30 shadow-xs'
               : 'bg-white border-slate-200 hover:border-amber-300 hover:bg-slate-50/60 shadow-2xs'
           }`}
         >
           <span className="w-2.5 h-2.5 rounded-full bg-amber-500 shrink-0"></span>
-          <span className="text-base sm:text-lg font-bold text-slate-900">قيد المراجعة</span>
+          <span className="text-base sm:text-lg font-bold text-slate-900">{t('common.underReview')}</span>
           <span className="text-xl sm:text-2xl font-bold text-amber-800 font-mono">{reviewCount}</span>
         </button>
 
@@ -179,14 +178,14 @@ export const UnifiedIndicatorsScreen: React.FC<UnifiedIndicatorsScreenProps> = (
           id="switch-to-compliance-indicator-btn"
           type="button"
           onClick={() => setSelectedIndicator('compliance')}
-          className={`p-4 sm:p-5 rounded-3xl border text-right transition-all duration-200 cursor-pointer flex items-center gap-3 ${
+          className={`p-4 sm:p-5 rounded-3xl border text-start transition-all duration-200 cursor-pointer flex items-center gap-3 ${
             selectedIndicator === 'compliance'
               ? 'bg-emerald-50/70 border-emerald-500 ring-2 ring-emerald-400/30 shadow-xs'
               : 'bg-white border-slate-200 hover:border-emerald-300 hover:bg-slate-50/60 shadow-2xs'
           }`}
         >
           <span className="w-2.5 h-2.5 rounded-full bg-emerald-600 shrink-0"></span>
-          <span className="text-base sm:text-lg font-bold text-slate-900">معتمد</span>
+          <span className="text-base sm:text-lg font-bold text-slate-900">{t('common.approved')}</span>
           <span className="text-xl sm:text-2xl font-bold text-emerald-700 font-mono">{safeCount}</span>
         </button>
 
@@ -199,7 +198,7 @@ export const UnifiedIndicatorsScreen: React.FC<UnifiedIndicatorsScreenProps> = (
         <div id="yellow-indicator-content" className="space-y-6 animate-in fade-in duration-200">
           
           {/* 1. Redesigned Clean Procedural Review Card */}
-          <section className="bg-white rounded-3xl border border-slate-200 p-5 md:p-6 shadow-2xs space-y-5 text-right">
+          <section className="bg-white rounded-3xl border border-slate-200 p-5 md:p-6 shadow-2xs space-y-5 text-start">
             
             {/* Card Header */}
             <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 pb-4 border-b border-slate-100">
@@ -209,10 +208,10 @@ export const UnifiedIndicatorsScreen: React.FC<UnifiedIndicatorsScreenProps> = (
                 </div>
                 <div className="space-y-0.5">
                   <h2 className="text-base sm:text-lg font-bold text-slate-900 leading-tight">
-                    مستند قيد المراجعة
+                    {t('indicators.yellow.cardTitle')}
                   </h2>
                   <p className="text-xs text-slate-600 font-normal">
-                    عقد توريد أجهزة ومعدات شبكات (#YQ-8841)
+                    {t('indicators.yellow.documentRef')}
                   </p>
                 </div>
               </div>
@@ -221,7 +220,7 @@ export const UnifiedIndicatorsScreen: React.FC<UnifiedIndicatorsScreenProps> = (
               <div className="shrink-0 flex items-center gap-2 self-start">
                 <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-bold bg-amber-50 text-amber-900 border border-amber-200">
                   <span className="w-2 h-2 rounded-full bg-amber-500"></span>
-                  <span>بانتظار استكمال التواقيع الإدارية</span>
+                  <span>{t('indicators.yellow.statusBadge')}</span>
                 </span>
               </div>
             </div>
@@ -232,39 +231,39 @@ export const UnifiedIndicatorsScreen: React.FC<UnifiedIndicatorsScreenProps> = (
               {/* Part 1: Document Name & Number */}
               <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-1.5 flex flex-col justify-start h-full">
                 <span className="text-[11px] font-bold text-amber-800 block">
-                  اسم المستند
+                  {t('common.documentName')}
                 </span>
                 <div className="text-xs sm:text-sm font-bold text-slate-900">
-                  عقد توريد أجهزة ومعدات شبكات (#YQ-8841)
+                  {t('indicators.yellow.documentRef')}
                 </div>
                 <p className="text-xs text-slate-600 leading-relaxed font-normal">
-                  معاملة توريد ومشتريات شبكات محالة لقسم المالية والميزانية والتدقيق الداخلي.
+                  {t('indicators.yellow.documentDescription')}
                 </p>
               </div>
 
               {/* Part 2: Diagnosis */}
               <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-1.5 flex flex-col justify-start h-full">
                 <span className="text-[11px] font-bold text-amber-800 block">
-                  تشخيص المستند
+                  {t('common.documentDiagnosis')}
                 </span>
                 <div className="text-xs sm:text-sm font-bold text-slate-900">
-                  نقص في سجل الاطلاع الداخلي
+                  {t('indicators.yellow.diagnosisTitle')}
                 </div>
                 <p className="text-xs text-slate-600 leading-relaxed font-normal">
-                  نقص في سجل الاطلاع الداخلي وعدم استكمال موافقة رئيس القسم المعني.
+                  {t('indicators.yellow.diagnosisBody')}
                 </p>
               </div>
 
               {/* Part 3: Action */}
               <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-1.5 flex flex-col justify-start h-full">
                 <span className="text-[11px] font-bold text-amber-800 block">
-                  الإجراء المعتمد
+                  {t('common.approvedAction')}
                 </span>
                 <div className="text-xs sm:text-sm font-bold text-slate-900">
-                  إعادة المستند للمُدخل
+                  {t('indicators.yellow.actionTitle')}
                 </div>
                 <p className="text-xs text-slate-600 leading-relaxed font-normal">
-                  إعادة المستند للمُدخل لاستكمال التواقيع الإدارية.
+                  {t('indicators.yellow.actionBody')}
                 </p>
               </div>
 
@@ -281,23 +280,23 @@ export const UnifiedIndicatorsScreen: React.FC<UnifiedIndicatorsScreenProps> = (
                 </div>
                 <div>
                   <h3 className="text-sm md:text-base font-bold text-slate-900">
-                    سجل الاطلاع
+                    {t('common.accessLog')}
                   </h3>
                   <p className="text-xs text-slate-600 font-normal">
-                    سجل الاطلاع غير مكتمل • بانتظار استيفاء التواقيع المطلوبة
+                    {t('indicators.yellow.accessLogSubtitle')}
                   </p>
                 </div>
               </div>
             </div>
 
             <div className="overflow-x-auto">
-              <table className="w-full text-right text-xs border-collapse">
+              <table className="w-full text-right ltr:text-left text-xs border-collapse">
                 <thead>
                   <tr className="border-b border-slate-200 bg-slate-100/80 text-slate-700 font-bold text-xs">
                     <th className="py-3.5 px-4 w-12 text-center">#</th>
-                    <th className="py-3.5 px-4">اسم المستخدم</th>
-                    <th className="py-3.5 px-4">المسمى الوظيفي</th>
-                    <th className="py-3.5 px-4">حالة التوقيع</th>
+                    <th className="py-3.5 px-4">{t('common.userName')}</th>
+                    <th className="py-3.5 px-4">{t('common.jobTitle')}</th>
+                    <th className="py-3.5 px-4">{t('common.signatureStatus')}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
@@ -316,7 +315,7 @@ export const UnifiedIndicatorsScreen: React.FC<UnifiedIndicatorsScreenProps> = (
                         <div className="flex items-center gap-2">
                           <span className="inline-flex items-center gap-1.5 text-[11px] font-medium px-2.5 py-1 rounded-lg bg-amber-50 border border-amber-200 text-amber-900">
                             <UserCheck className="w-3.5 h-3.5 text-amber-700" />
-                            <span>تم الاطلاع والتوقيع</span>
+                            <span>{t('common.viewedAndSigned')}</span>
                           </span>
                           <span className="text-[10px] text-slate-500 font-mono">
                             {viewer.viewedAt}
@@ -339,15 +338,15 @@ export const UnifiedIndicatorsScreen: React.FC<UnifiedIndicatorsScreenProps> = (
                 </div>
                 <div>
                   <h3 className="text-sm md:text-base font-bold text-slate-900">
-                    الإجراء الرقابي المتخذ
+                    {t('common.controlAction')}
                   </h3>
                   <p className="text-xs text-slate-600 font-normal">
-                    بانتظار قرار رئيس القسم • الإذن بالنشر المعتمد
+                    {t('indicators.yellow.controlSubtitle')}
                   </p>
                 </div>
               </div>
               <span className="text-xs font-bold text-amber-800 bg-amber-50 px-2.5 py-1 rounded-lg border border-amber-200">
-                مطلوب لاعتماد النشر
+                {t('indicators.yellow.requiredBadge')}
               </span>
             </div>
 
@@ -361,6 +360,9 @@ export const UnifiedIndicatorsScreen: React.FC<UnifiedIndicatorsScreenProps> = (
             </div>
           </section>
 
+          {/* AI risk assessment (Yaqadha procurement risk model) */}
+          <RiskAssessmentPanel document={yellowDocument} />
+
           {/* 4. Fixed Resolution Bottom Bar */}
           <div className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-300 p-4 shadow-2xl">
             <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
@@ -370,10 +372,10 @@ export const UnifiedIndicatorsScreen: React.FC<UnifiedIndicatorsScreenProps> = (
                 </div>
                 <div>
                   <div className="text-xs font-bold text-slate-900 leading-snug">
-                    صلاحية القرار: محال لرئيس قسم المالية والميزانية
+                    {t('indicators.yellow.authorityTitle')}
                   </div>
                   <div className="text-[11px] text-slate-600 mt-0.5 font-normal">
-                    يمكن لرئيس القسم الإذن بنشر المستند بعد التحقق
+                    {t('indicators.yellow.authoritySubtitle')}
                   </div>
                 </div>
               </div>
@@ -392,12 +394,12 @@ export const UnifiedIndicatorsScreen: React.FC<UnifiedIndicatorsScreenProps> = (
                 >
                   {isYellowResolved ? (
                     <>
-                      <span>تم إرسال توجيه الاستيفاء والتوقيع للأطراف المعنية</span>
+                      <span>{t('indicators.yellow.resolved')}</span>
                       <Check className="w-4 h-4" />
                     </>
                   ) : (
                     <>
-                      <span>وجّه باستيفاء التواقيع وإعادة المراجعة</span>
+                      <span>{t('indicators.yellow.resolve')}</span>
                       <Send className="w-4 h-4" />
                     </>
                   )}
@@ -416,7 +418,7 @@ export const UnifiedIndicatorsScreen: React.FC<UnifiedIndicatorsScreenProps> = (
         <div id="red-indicator-content" className="space-y-6 animate-in fade-in duration-200">
           
           {/* 1. Redesigned Clean Critical Block Card (مطابق لهيكلية المؤشر الأصفر) */}
-          <section className="bg-white rounded-3xl border border-slate-200 p-5 md:p-6 shadow-2xs space-y-5 text-right">
+          <section className="bg-white rounded-3xl border border-slate-200 p-5 md:p-6 shadow-2xs space-y-5 text-start">
             
             {/* Card Header */}
             <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 pb-4 border-b border-slate-100">
@@ -426,10 +428,10 @@ export const UnifiedIndicatorsScreen: React.FC<UnifiedIndicatorsScreenProps> = (
                 </div>
                 <div className="space-y-0.5">
                   <h2 className="text-base sm:text-lg font-bold text-slate-900 leading-tight">
-                    مستند محظور
+                    {t('indicators.red.cardTitle')}
                   </h2>
                   <p className="text-xs text-slate-600 font-normal">
-                    كراسة الشروط والمواصفات لمشروع التوسع التقني (#DOC-2026-01)
+                    {t('indicators.red.documentRef')}
                   </p>
                 </div>
               </div>
@@ -438,7 +440,7 @@ export const UnifiedIndicatorsScreen: React.FC<UnifiedIndicatorsScreenProps> = (
               <div className="shrink-0 flex items-center gap-2 self-start">
                 <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-bold bg-red-50 text-red-900 border border-red-200">
                   <span className="w-2 h-2 rounded-full bg-red-600"></span>
-                  <span>حظر وتجميد المعاملة تلقائياً</span>
+                  <span>{t('indicators.red.statusBadge')}</span>
                 </span>
               </div>
             </div>
@@ -449,39 +451,39 @@ export const UnifiedIndicatorsScreen: React.FC<UnifiedIndicatorsScreenProps> = (
               {/* Part 1: Document Name & Number */}
               <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-1.5 flex flex-col justify-start h-full">
                 <span className="text-[11px] font-bold text-red-700 block">
-                  اسم المستند
+                  {t('common.documentName')}
                 </span>
                 <div className="text-xs sm:text-sm font-bold text-slate-900">
-                  كراسة الشروط والمواصفات لمشروع التوسع التقني (#DOC-2026-01)
+                  {t('indicators.red.documentRef')}
                 </div>
                 <p className="text-xs text-slate-600 leading-relaxed font-normal">
-                  معاملة مناقصات ومشاريع تقنية كبرى صادرة عن إدارة تقنية المعلومات.
+                  {t('indicators.red.documentDescription')}
                 </p>
               </div>
 
               {/* Part 2: Diagnosis */}
               <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-1.5 flex flex-col justify-start h-full">
                 <span className="text-[11px] font-bold text-red-700 block">
-                  تشخيص المستند
+                  {t('common.documentDiagnosis')}
                 </span>
                 <div className="text-xs sm:text-sm font-bold text-slate-900">
-                  اعتماد بتوقيع منفرد غير مصرح
+                  {t('indicators.red.diagnosisTitle')}
                 </div>
                 <p className="text-xs text-slate-600 leading-relaxed font-normal">
-                  تم رصد اعتماد الوثيقة بتوقيع منفرد من قبل إدارة تقنية المعلومات دون استيفاء توقيع الشؤون القانونية والموارد المالية.
+                  {t('indicators.red.diagnosisBody')}
                 </p>
               </div>
 
               {/* Part 3: Result */}
               <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-1.5 flex flex-col justify-start h-full">
                 <span className="text-[11px] font-bold text-red-700 block">
-                  الإجراء المعتمد
+                  {t('common.approvedAction')}
                 </span>
                 <div className="text-xs sm:text-sm font-bold text-slate-900">
-                  حظر وتجميد المعاملة تلقائياً
+                  {t('indicators.red.actionTitle')}
                 </div>
                 <p className="text-xs text-slate-600 leading-relaxed font-normal">
-                  حظر وتجميد المعاملة تلقائياً مع إيقاف صلاحيات النشر وإحالة الملف لمعالي رئيس المنظومة وهيئة النزاهة.
+                  {t('indicators.red.actionBody')}
                 </p>
               </div>
 
@@ -498,23 +500,23 @@ export const UnifiedIndicatorsScreen: React.FC<UnifiedIndicatorsScreenProps> = (
                 </div>
                 <div>
                   <h3 className="text-sm md:text-base font-bold text-slate-900">
-                    سجل الاطلاع
+                    {t('common.accessLog')}
                   </h3>
                   <p className="text-xs text-slate-600 font-normal">
-                    سجل الاطلاع غير مكتمل • تم رصد توقيع منفرد وتخطي سلسلة الاعتمادات الإلزامية
+                    {t('indicators.red.accessLogSubtitle')}
                   </p>
                 </div>
               </div>
             </div>
 
             <div className="overflow-x-auto">
-              <table className="w-full text-right text-xs border-collapse">
+              <table className="w-full text-right ltr:text-left text-xs border-collapse">
                 <thead>
                   <tr className="border-b border-slate-200 bg-slate-100/80 text-slate-700 font-bold text-xs">
                     <th className="py-3.5 px-4 w-12 text-center">#</th>
-                    <th className="py-3.5 px-4">اسم المستخدم</th>
-                    <th className="py-3.5 px-4">المسمى الوظيفي</th>
-                    <th className="py-3.5 px-4">حالة التوقيع</th>
+                    <th className="py-3.5 px-4">{t('common.userName')}</th>
+                    <th className="py-3.5 px-4">{t('common.jobTitle')}</th>
+                    <th className="py-3.5 px-4">{t('common.signatureStatus')}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
@@ -523,19 +525,19 @@ export const UnifiedIndicatorsScreen: React.FC<UnifiedIndicatorsScreenProps> = (
                       01
                     </td>
                     <td className="py-3.5 px-4 font-bold text-slate-900 text-xs">
-                      أحمد خالد
+                      {t('indicators.red.row1Name')}
                     </td>
                     <td className="py-3.5 px-4 text-slate-700 font-medium text-[11px]">
-                      مدير إدارة تقنية المعلومات • إدارة تقنية المعلومات
+                      {t('indicators.red.row1Role')}
                     </td>
                     <td className="py-3.5 px-4">
                       <div className="flex items-center gap-2">
                         <span className="inline-flex items-center gap-1.5 text-[11px] font-medium px-2.5 py-1 rounded-lg bg-red-50 border border-red-200 text-red-900">
                           <UserX className="w-3.5 h-3.5 text-red-600" />
-                          <span>اطلع ووقع منفردًا</span>
+                          <span>{t('indicators.red.row1Status')}</span>
                         </span>
                         <span className="text-[10px] text-slate-500 font-mono">
-                          2026-09-15 05:42 ص
+                          {t('indicators.red.row1Time')}
                         </span>
                       </div>
                     </td>
@@ -545,16 +547,16 @@ export const UnifiedIndicatorsScreen: React.FC<UnifiedIndicatorsScreenProps> = (
                       02
                     </td>
                     <td className="py-3.5 px-4 font-bold text-slate-900 text-xs">
-                      المستشار القانوني العام
+                      {t('indicators.red.row2Name')}
                     </td>
                     <td className="py-3.5 px-4 text-slate-700 font-medium text-[11px]">
-                      المستشار القانوني (الشؤون القانونية)
+                      {t('indicators.red.row2Role')}
                     </td>
                     <td className="py-3.5 px-4">
                       <div className="flex items-center gap-2">
                         <span className="inline-flex items-center gap-1.5 text-[11px] font-medium px-2.5 py-1 rounded-lg bg-red-50 border border-red-200 text-red-800">
                           <Clock className="w-3.5 h-3.5 text-red-500" />
-                          <span>لم يتم الاطلاع</span>
+                          <span>{t('common.notViewed')}</span>
                         </span>
                         <span className="text-[10px] text-slate-400 font-mono">
                           —
@@ -567,16 +569,16 @@ export const UnifiedIndicatorsScreen: React.FC<UnifiedIndicatorsScreenProps> = (
                       03
                     </td>
                     <td className="py-3.5 px-4 font-bold text-slate-900 text-xs">
-                      مدير إدارة الموارد المالية
+                      {t('indicators.red.row3Name')}
                     </td>
                     <td className="py-3.5 px-4 text-slate-700 font-medium text-[11px]">
-                      مدير الموارد المالية (الشؤون المالية)
+                      {t('indicators.red.row3Role')}
                     </td>
                     <td className="py-3.5 px-4">
                       <div className="flex items-center gap-2">
                         <span className="inline-flex items-center gap-1.5 text-[11px] font-medium px-2.5 py-1 rounded-lg bg-red-50 border border-red-200 text-red-800">
                           <Clock className="w-3.5 h-3.5 text-red-500" />
-                          <span>لم يتم الاطلاع</span>
+                          <span>{t('common.notViewed')}</span>
                         </span>
                         <span className="text-[10px] text-slate-400 font-mono">
                           —
@@ -598,16 +600,16 @@ export const UnifiedIndicatorsScreen: React.FC<UnifiedIndicatorsScreenProps> = (
                 </div>
                 <div>
                   <h3 className="text-sm md:text-base font-bold text-slate-900">
-                    صاحب التوقيع المنفرد (مُعد المستند)
+                    {t('indicators.red.signerTitle')}
                   </h3>
                   <p className="text-xs text-slate-600 font-normal">
-                    المسؤول عن محاولة النشر واعتماد المستند بشكل منفرد دون استكمال التواقيع
+                    {t('indicators.red.signerSubtitle')}
                   </p>
                 </div>
               </div>
 
               <span className="text-[11px] font-bold text-red-700 bg-red-50 px-2.5 py-1 rounded-lg border border-red-200">
-                حساب موقوف
+                {t('common.suspendedAccount')}
               </span>
             </div>
 
@@ -615,20 +617,20 @@ export const UnifiedIndicatorsScreen: React.FC<UnifiedIndicatorsScreenProps> = (
               <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 flex items-center justify-between gap-4">
                 <div className="flex items-start sm:items-center gap-3">
                   <div className="w-12 h-12 rounded-2xl bg-slate-900 text-white font-bold flex items-center justify-center text-sm shadow-sm shrink-0">
-                    أخ
+                    {t('indicators.red.signerInitials')}
                   </div>
                   <div className="space-y-1">
                     <div className="flex items-center gap-2">
-                      <h4 className="font-bold text-slate-900 text-base">أحمد خالد</h4>
+                      <h4 className="font-bold text-slate-900 text-base">{t('indicators.red.signerName')}</h4>
                       <span className="text-[10px] font-bold text-red-700 bg-red-100/70 px-2 py-0.5 rounded-full border border-red-200">
-                        حساب موقوف
+                        {t('common.suspendedAccount')}
                       </span>
                     </div>
                     <p className="text-xs text-slate-600 font-normal whitespace-nowrap">
-                      مدير إدارة تقنية المعلومات • إدارة تقنية المعلومات
+                      {t('indicators.red.signerRole')}
                     </p>
                     <p className="text-[11px] text-slate-500 font-normal">
-                      وقت العملية: <span className="font-mono font-bold text-slate-700">2026-09-15 05:42 ص</span>
+                      {`${t('indicators.red.operationTime')} `}<span className="font-mono font-bold text-slate-700">{t('indicators.red.row1Time')}</span>
                     </p>
                   </div>
                 </div>
@@ -637,14 +639,14 @@ export const UnifiedIndicatorsScreen: React.FC<UnifiedIndicatorsScreenProps> = (
               {/* Forensic Violations Breakdown */}
               <div className="space-y-2 pt-1">
                 <span className="text-xs font-bold text-slate-700 block">
-                  بنود المخالفات المرصودة آلياً عبر محرك يقظة الرقابي:
+                  {t('indicators.red.violationsTitle')}
                 </span>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5">
                   {singleInvolvedUser.violations.map((v, i) => (
-                    <div key={i} className="p-3 rounded-xl bg-slate-50 border border-slate-200 text-right">
+                    <div key={i} className="p-3 rounded-xl bg-slate-50 border border-slate-200 text-start">
                       <div className="flex items-center gap-1.5 text-red-700 font-bold text-[11px]">
                         <span className="w-1.5 h-1.5 rounded-full bg-red-600 shrink-0"></span>
-                        <span>مخالفة رقم {i + 1}</span>
+                        <span>{formatNodes(t('indicators.red.violationNumber'), { number: i + 1 })}</span>
                       </div>
                       <p className="text-xs text-slate-600 mt-1 leading-relaxed font-normal">
                         {v}
@@ -665,27 +667,30 @@ export const UnifiedIndicatorsScreen: React.FC<UnifiedIndicatorsScreenProps> = (
                 </div>
                 <div>
                   <h3 className="text-sm md:text-base font-bold text-slate-900">
-                    الإجراء الرقابي المتخذ
+                    {t('common.controlAction')}
                   </h3>
                   <p className="text-xs text-slate-600 font-normal">
-                    حظر وتجميد دائم للوثيقة • تحويل الملف للمساءلة الرقابية
+                    {t('indicators.red.controlSubtitle')}
                   </p>
                 </div>
               </div>
               <span className="text-xs font-bold text-red-800 bg-red-50 px-2.5 py-1 rounded-lg border border-red-200">
-                حظر غير قابل للتراجع
+                {t('indicators.red.irreversibleBadge')}
               </span>
             </div>
 
             <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
               <div className="text-xs font-bold text-slate-900">
-                بيان التدقيق الجنائي المعتمد:
+                {t('indicators.red.forensicStatementTitle')}
               </div>
               <p className="text-xs text-slate-600 leading-relaxed font-normal">
-                بموجب المادة 43 من لائحة الحوكمة والاعتمادات الإدارية، تم تطبيق الحظر وتجميد كراسة الشروط والمواصفات لمشروع التوسع التقني (#DOC-2026-01) مع إيقاف صلاحيات النشر التلقائي لحساب المُعد، وتجهيز ملف الإفادة الرسمية للعرض المباشر على معالي رئيس المنظومة وهيئة الرقابة ومكافحة الفساد.
+                {t('indicators.red.forensicStatementBody')}
               </p>
             </div>
           </section>
+
+          {/* AI risk assessment (Yaqadha procurement risk model) */}
+          <RiskAssessmentPanel document={redDocument} />
 
           {/* 4. Fixed Escalation Bottom Bar */}
           <div className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-300 p-4 shadow-2xl">
@@ -696,10 +701,10 @@ export const UnifiedIndicatorsScreen: React.FC<UnifiedIndicatorsScreenProps> = (
                 </div>
                 <div>
                   <div className="text-xs font-bold text-slate-900 leading-snug">
-                    صلاحية القرار: معالي رئيس الشركة وهيئة الرقابة
+                    {t('indicators.red.authorityTitle')}
                   </div>
                   <div className="text-[11px] text-slate-600 mt-0.5 font-normal">
-                    الوثيقة محظورة ومجمدة بشكل دائم ولا يمكن نشرها
+                    {t('indicators.red.authoritySubtitle')}
                   </div>
                 </div>
               </div>
@@ -709,7 +714,7 @@ export const UnifiedIndicatorsScreen: React.FC<UnifiedIndicatorsScreenProps> = (
                   onClick={onOpenStatementModal}
                   className="px-4 py-2.5 rounded-xl bg-white border border-[#2C3E28] text-[#2C3E28] hover:bg-[#2C3E28]/5 text-xs font-bold transition-colors cursor-pointer"
                 >
-                  طلب إفادة وتحقيق
+                  {t('indicators.red.requestStatement')}
                 </button>
 
                 <button
@@ -725,12 +730,12 @@ export const UnifiedIndicatorsScreen: React.FC<UnifiedIndicatorsScreenProps> = (
                 >
                   {isRedEscalated ? (
                     <>
-                      <span>تم تصعيد المخالفة لمعالي رئيس الشركة وهيئة النزاهة</span>
+                      <span>{t('indicators.red.escalated')}</span>
                       <Check className="w-4 h-4" />
                     </>
                   ) : (
                     <>
-                      <span>صعّد المخالفة لرئيس الشركة وهيئة النزاهة</span>
+                      <span>{t('indicators.red.escalate')}</span>
                       <Ban className="w-4 h-4" />
                     </>
                   )}
@@ -749,7 +754,7 @@ export const UnifiedIndicatorsScreen: React.FC<UnifiedIndicatorsScreenProps> = (
         <div id="compliance-indicator-content" className="space-y-6 animate-in fade-in duration-200">
           
           {/* 1. Approved Document Diagnostic Card (مطابق لهيكلية كرت محظور وقيد المراجعة) */}
-          <section className="bg-white rounded-3xl border border-slate-200 p-5 md:p-6 shadow-2xs space-y-5 text-right">
+          <section className="bg-white rounded-3xl border border-slate-200 p-5 md:p-6 shadow-2xs space-y-5 text-start">
             
             {/* Card Header */}
             <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 pb-4 border-b border-slate-100">
@@ -759,10 +764,10 @@ export const UnifiedIndicatorsScreen: React.FC<UnifiedIndicatorsScreenProps> = (
                 </div>
                 <div className="space-y-0.5">
                   <h2 className="text-base sm:text-lg font-bold text-slate-900 leading-tight">
-                    مستند معتمد
+                    {t('indicators.approved.cardTitle')}
                   </h2>
                   <p className="text-xs text-slate-600 font-normal">
-                    ميزانية التشغيل السنوية والخطة المالية (#DOC-2026-03)
+                    {t('indicators.approved.documentRef')}
                   </p>
                 </div>
               </div>
@@ -775,7 +780,7 @@ export const UnifiedIndicatorsScreen: React.FC<UnifiedIndicatorsScreenProps> = (
                   className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-emerald-50 hover:bg-emerald-100/90 text-emerald-900 border border-emerald-200 shadow-2xs hover:border-emerald-300 transition-all cursor-pointer active:scale-95"
                 >
                   <span className="w-2 h-2 rounded-full bg-emerald-600"></span>
-                  <span>معتمد وجاهز للتنفيذ</span>
+                  <span>{t('common.approvedReady')}</span>
                 </button>
               </div>
             </div>
@@ -786,39 +791,39 @@ export const UnifiedIndicatorsScreen: React.FC<UnifiedIndicatorsScreenProps> = (
               {/* Part 1: Document Name & Number */}
               <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-1.5 flex flex-col justify-start h-full">
                 <span className="text-[11px] font-bold text-emerald-800 block">
-                  اسم المستند
+                  {t('common.documentName')}
                 </span>
                 <div className="text-xs sm:text-sm font-bold text-slate-900">
-                  ميزانية التشغيل السنوية والخطة المالية (#DOC-2026-03)
+                  {t('indicators.approved.documentRef')}
                 </div>
                 <p className="text-xs text-slate-600 leading-relaxed font-normal">
-                  معاملة الميزانيات والخطط المالية الصادرة عن إدارة الموارد المالية ومطابقة للوائح الحوكمة.
+                  {t('indicators.approved.documentDescription')}
                 </p>
               </div>
 
               {/* Part 2: Diagnosis / Approval Details */}
               <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-1.5 flex flex-col justify-start h-full">
                 <span className="text-[11px] font-bold text-emerald-800 block">
-                  تشخيص المستند
+                  {t('common.documentDiagnosis')}
                 </span>
                 <div className="text-xs sm:text-sm font-bold text-slate-900">
-                  اكتمال مصفوفة التواقيع والتدقيق
+                  {t('indicators.approved.diagnosisTitle')}
                 </div>
                 <p className="text-xs text-slate-600 leading-relaxed font-normal">
-                  تم اكتمال كافة التواقيع المطلوبة (إدارة الموارد المالية، الشؤون القانونية، وموافقة رئيس القسم) واستيفاء سجل الاطلاع الداخلي بنجاح.
+                  {t('indicators.approved.diagnosisBody')}
                 </p>
               </div>
 
               {/* Part 3: Final Status */}
               <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-1.5 flex flex-col justify-start h-full">
                 <span className="text-[11px] font-bold text-emerald-800 block">
-                  الإجراء المعتمد
+                  {t('common.approvedAction')}
                 </span>
                 <div className="text-xs sm:text-sm font-bold text-slate-900">
-                  معتمد وجاهز للتنفيذ
+                  {t('common.approvedReady')}
                 </div>
                 <p className="text-xs text-slate-600 leading-relaxed font-normal">
-                  استيفاء معايير الرقابة بنسبة 100% وإصدار وثيقة التوثيق الرقمي والباركود المشفر تلقائياً.
+                  {t('indicators.approved.actionBody')}
                 </p>
               </div>
 
@@ -835,23 +840,23 @@ export const UnifiedIndicatorsScreen: React.FC<UnifiedIndicatorsScreenProps> = (
                 </div>
                 <div>
                   <h3 className="text-sm md:text-base font-bold text-slate-900">
-                    سجل الاطلاع
+                    {t('common.accessLog')}
                   </h3>
                   <p className="text-xs text-slate-600 font-normal">
-                    سجل الاطلاع مكتمل • تم توقيع واعتماد المستند من جميع الأطراف المعنية
+                    {t('indicators.approved.accessLogSubtitle')}
                   </p>
                 </div>
               </div>
             </div>
 
             <div className="overflow-x-auto">
-              <table className="w-full text-right text-xs border-collapse">
+              <table className="w-full text-right ltr:text-left text-xs border-collapse">
                 <thead>
                   <tr className="border-b border-slate-200 bg-slate-100/80 text-slate-700 font-bold text-xs">
                     <th className="py-3.5 px-4 w-12 text-center">#</th>
-                    <th className="py-3.5 px-4">اسم المستخدم</th>
-                    <th className="py-3.5 px-4">المسمى الوظيفي</th>
-                    <th className="py-3.5 px-4">حالة التوقيع</th>
+                    <th className="py-3.5 px-4">{t('common.userName')}</th>
+                    <th className="py-3.5 px-4">{t('common.jobTitle')}</th>
+                    <th className="py-3.5 px-4">{t('common.signatureStatus')}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
@@ -860,19 +865,19 @@ export const UnifiedIndicatorsScreen: React.FC<UnifiedIndicatorsScreenProps> = (
                       01
                     </td>
                     <td className="py-3.5 px-4 font-bold text-slate-900 text-xs">
-                      د. طارق المنصور
+                      {t('indicators.approved.row1Name')}
                     </td>
                     <td className="py-3.5 px-4 text-slate-700 font-medium text-[11px]">
-                      مدير إدارة الموارد المالية (إدارة الموارد المالية)
+                      {t('indicators.approved.row1Role')}
                     </td>
                     <td className="py-3.5 px-4">
                       <div className="flex items-center gap-2">
                         <span className="inline-flex items-center gap-1.5 text-[11px] font-medium px-2.5 py-1 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-900">
                           <UserCheck className="w-3.5 h-3.5 text-emerald-700" />
-                          <span>تم الاطلاع والتوقيع</span>
+                          <span>{t('common.viewedAndSigned')}</span>
                         </span>
                         <span className="text-[10px] text-slate-500 font-mono">
-                          2026-09-18 09:15 ص
+                          {t('indicators.approved.row1Time')}
                         </span>
                       </div>
                     </td>
@@ -882,19 +887,19 @@ export const UnifiedIndicatorsScreen: React.FC<UnifiedIndicatorsScreenProps> = (
                       02
                     </td>
                     <td className="py-3.5 px-4 font-bold text-slate-900 text-xs">
-                      أ. نورة الشمري
+                      {t('indicators.approved.row2Name')}
                     </td>
                     <td className="py-3.5 px-4 text-slate-700 font-medium text-[11px]">
-                      المستشار القانوني العام (الشؤون القانونية)
+                      {t('indicators.approved.row2Role')}
                     </td>
                     <td className="py-3.5 px-4">
                       <div className="flex items-center gap-2">
                         <span className="inline-flex items-center gap-1.5 text-[11px] font-medium px-2.5 py-1 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-900">
                           <UserCheck className="w-3.5 h-3.5 text-emerald-700" />
-                          <span>تم الاطلاع والتوقيع</span>
+                          <span>{t('common.viewedAndSigned')}</span>
                         </span>
                         <span className="text-[10px] text-slate-500 font-mono">
-                          2026-09-18 11:30 ص
+                          {t('indicators.approved.row2Time')}
                         </span>
                       </div>
                     </td>
@@ -904,19 +909,19 @@ export const UnifiedIndicatorsScreen: React.FC<UnifiedIndicatorsScreenProps> = (
                       03
                     </td>
                     <td className="py-3.5 px-4 font-bold text-slate-900 text-xs">
-                      د. عبد الله الغامدي
+                      {t('indicators.approved.row3Name')}
                     </td>
                     <td className="py-3.5 px-4 text-slate-700 font-medium text-[11px]">
-                      رئيس القسم ونائب الرئيس التنفيذي (الإدارة العليا)
+                      {t('indicators.approved.row3Role')}
                     </td>
                     <td className="py-3.5 px-4">
                       <div className="flex items-center gap-2">
                         <span className="inline-flex items-center gap-1.5 text-[11px] font-medium px-2.5 py-1 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-900">
                           <UserCheck className="w-3.5 h-3.5 text-emerald-700" />
-                          <span>تم الاطلاع والتوقيع</span>
+                          <span>{t('common.viewedAndSigned')}</span>
                         </span>
                         <span className="text-[10px] text-slate-500 font-mono">
-                          2026-09-18 02:45 م
+                          {t('indicators.approved.row3Time')}
                         </span>
                       </div>
                     </td>
@@ -935,28 +940,31 @@ export const UnifiedIndicatorsScreen: React.FC<UnifiedIndicatorsScreenProps> = (
                 </div>
                 <div>
                   <h3 className="text-sm md:text-base font-bold text-slate-900">
-                    الإجراء الرقابي المتخذ
+                    {t('common.controlAction')}
                   </h3>
                   <p className="text-xs text-slate-600 font-normal">
-                    مطابقة تامة لمتطلبات الحوكمة • إصدار الختم الرقمي والتصريح بالتنفيذ
+                    {t('indicators.approved.controlSubtitle')}
                   </p>
                 </div>
               </div>
               <span className="text-xs font-bold text-emerald-800 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200">
-                اعتماد نهائي
+                {t('indicators.approved.finalBadge')}
               </span>
             </div>
 
             {/* بيان الاعتماد والتوثيق الرقمي المعتمد */}
             <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
               <div className="font-bold text-slate-900 text-xs">
-                بيان الاعتماد والتوثيق الرقمي المعتمد:
+                {t('indicators.approved.statementTitle')}
               </div>
               <p className="text-xs text-slate-600 leading-relaxed font-normal">
-                بموجب المادة (12) من لائحة الحوكمة والاعتماد الرقمي، تم استيفاء كافة التواقيع الإلزامية لميزانية التشغيل السنوية والخطة المالية (#DOC-2026-03) بمشاركة إدارة الموارد المالية، والشؤون القانونية، وموافقة رئيس القسم المعني، مع اكتمال سجل الاطلاع الداخلي بنجاح. الوثيقة مصادق عليها وتعتبر سارية المفعول وجاهزة للتنفيذ الفوري.
+                {t('indicators.approved.statementBody')}
               </p>
             </div>
           </section>
+
+          {/* AI risk assessment (Yaqadha procurement risk model) */}
+          {approvedDoc && <RiskAssessmentPanel document={approvedDoc} />}
 
           {/* 4. Fixed Approved Action Bottom Bar */}
           <div className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-300 p-4 shadow-2xl">
@@ -967,10 +975,10 @@ export const UnifiedIndicatorsScreen: React.FC<UnifiedIndicatorsScreenProps> = (
                 </div>
                 <div>
                   <div className="text-xs font-bold text-slate-900 leading-snug">
-                    صلاحية الاعتماد: اعتماد رقمي نهائي
+                    {t('indicators.approved.authorityTitle')}
                   </div>
                   <div className="text-[11px] text-slate-600 mt-0.5 font-normal">
-                    ميزانية التشغيل السنوية والخطة المالية (#DOC-2026-03) معتمدة وجاهزة للتنفيذ
+                    {t('indicators.approved.authoritySubtitle')}
                   </div>
                 </div>
               </div>
@@ -989,12 +997,12 @@ export const UnifiedIndicatorsScreen: React.FC<UnifiedIndicatorsScreenProps> = (
                 >
                   {isApprovedPublished ? (
                     <>
-                      <span>تم إصدار تصريح النشر وإطلاق المستند</span>
+                      <span>{t('indicators.approved.published')}</span>
                       <Check className="w-4 h-4" />
                     </>
                   ) : (
                     <>
-                      <span>إصدار تصريح النشر الرسمي</span>
+                      <span>{t('indicators.approved.publish')}</span>
                       <Check className="w-4 h-4" />
                     </>
                   )}
@@ -1012,7 +1020,7 @@ export const UnifiedIndicatorsScreen: React.FC<UnifiedIndicatorsScreenProps> = (
         onClose={() => setIsReviewApprovalModalOpen(false)}
         documentTitle={yellowDocument.title}
         documentNumber="#YQ-8841"
-        department="قسم المالية والميزانية"
+        department={t('indicators.yellow.department')}
         onConfirmApproval={() => {
           setIsYellowResolved(true);
         }}
@@ -1025,9 +1033,9 @@ export const UnifiedIndicatorsScreen: React.FC<UnifiedIndicatorsScreenProps> = (
         onConfirmPublish={() => {
           setIsApprovedPublished(true);
         }}
-        documentTitle={approvedDoc?.title || 'ميزانية التشغيل السنوية والخطة المالية'}
+        documentTitle={approvedDoc?.title || t('indicators.approved.fallbackTitle')}
         documentNumber={approvedDoc?.code || '#DOC-2026-03'}
-        department={approvedDoc?.department || 'إدارة الموارد المالية'}
+        department={approvedDoc?.department || t('indicators.approved.fallbackDepartment')}
       />
 
     </div>

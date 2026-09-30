@@ -16,6 +16,7 @@ import {
   Filter
 } from 'lucide-react';
 import { DocumentDossier, ActiveScreen } from '../types';
+import { formatNodes, useLanguage } from '../i18n';
 
 interface ExecutiveDashboardScreenProps {
   documents: DocumentDossier[];
@@ -32,6 +33,7 @@ export const ExecutiveDashboardScreen: React.FC<ExecutiveDashboardScreenProps> =
   searchQuery: externalSearchQuery,
   setSearchQuery: setExternalSearchQuery,
 }) => {
+  const { t } = useLanguage();
   const [internalSearchQuery, setInternalSearchQuery] = useState('');
   const searchQuery = externalSearchQuery !== undefined ? externalSearchQuery : internalSearchQuery;
   const setSearchQuery = setExternalSearchQuery || setInternalSearchQuery;
@@ -60,35 +62,35 @@ export const ExecutiveDashboardScreen: React.FC<ExecutiveDashboardScreenProps> =
     // Search query
     if (!searchQuery) return true;
     const query = searchQuery.toLowerCase();
-    const statusLabel = doc.riskLevel === 'blocked' ? 'محظور' : doc.riskLevel === 'review' ? 'قيد المراجعة' : 'معتمد';
+    const statusLabel = doc.riskLevel === 'blocked' ? t('common.blocked') : doc.riskLevel === 'review' ? t('common.underReview') : t('common.approved');
     return (
       doc.title.toLowerCase().includes(query) ||
       doc.code.toLowerCase().includes(query) ||
       doc.department.toLowerCase().includes(query) ||
       doc.responsibleDeptHead.toLowerCase().includes(query) ||
       statusLabel.toLowerCase().includes(query) ||
-      (doc.riskLevel === 'safe' && 'آمن'.includes(query)) ||
+      (doc.riskLevel === 'safe' && t('documentsRegistry.safeSearchAlias').includes(query)) ||
       doc.riskLevel.toLowerCase().includes(query)
     );
   });
 
   return (
-    <div id="executive-dashboard-screen" className="space-y-6 text-right">
+    <div id="executive-dashboard-screen" className="space-y-6 text-start">
       
       {/* 1. Header Title */}
       <div className="pt-1">
         <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
-          سجل المستندات
+          {t('documentsRegistry.title')}
         </h1>
         <p className="text-xs sm:text-sm font-normal text-slate-600 mt-1">
-          لوحة المتابعة الشاملة للمستندات
+          {t('documentsRegistry.subtitle')}
         </p>
       </div>
 
       {/* 2. Compact Compliance Overview & Proportional Distribution Bar (مخطط معدل الامتثال وتوزيع حالات الوثائق) */}
-      <div className="bg-white rounded-2xl border border-slate-200 p-3.5 sm:p-4 shadow-2xs space-y-2.5 text-right">
+      <div className="bg-white rounded-2xl border border-slate-200 p-3.5 sm:p-4 shadow-2xs space-y-2.5 text-start">
         <div className="text-xs sm:text-sm font-bold text-slate-900">
-          معدل الامتثال وتوزيع حالات الوثائق
+          {t('documentsRegistry.complianceTitle')}
         </div>
 
         {/* Proportional Segmented Bar */}
@@ -97,21 +99,21 @@ export const ExecutiveDashboardScreen: React.FC<ExecutiveDashboardScreenProps> =
             <div 
               style={{ width: `${blockedPercent}%` }} 
               className="bg-red-600 transition-all duration-500 h-full"
-              title={`محظور: ${blockedCount} (${blockedPercent}%)`}
+              title={t('documentsRegistry.barBlocked', { count: blockedCount, percent: blockedPercent })}
             />
           )}
           {reviewCount > 0 && (
             <div 
               style={{ width: `${reviewPercent}%` }} 
               className="bg-amber-500 transition-all duration-500 h-full"
-              title={`قيد المراجعة: ${reviewCount} (${reviewPercent}%)`}
+              title={t('documentsRegistry.barReview', { count: reviewCount, percent: reviewPercent })}
             />
           )}
           {safeCount > 0 && (
             <div 
               style={{ width: `${safePercent}%` }} 
               className="bg-emerald-600 transition-all duration-500 h-full"
-              title={`معتمد: ${safeCount} (${safePercent}%)`}
+              title={t('documentsRegistry.barApproved', { count: safeCount, percent: safePercent })}
             />
           )}
         </div>
@@ -120,15 +122,15 @@ export const ExecutiveDashboardScreen: React.FC<ExecutiveDashboardScreenProps> =
         <div className="flex flex-wrap items-center gap-5 sm:gap-7 text-xs pt-0.5">
           <div className="flex items-center gap-1.5 text-red-700 font-medium">
             <span className="w-2 h-2 rounded-full bg-red-600 shrink-0"></span>
-            <span>محظور ({blockedPercent}%)</span>
+            <span>{formatNodes(t('documentsRegistry.legendBlocked'), { percent: blockedPercent })}</span>
           </div>
           <div className="flex items-center gap-1.5 text-amber-800 font-medium">
             <span className="w-2 h-2 rounded-full bg-amber-500 shrink-0"></span>
-            <span>قيد المراجعة ({reviewPercent}%)</span>
+            <span>{formatNodes(t('documentsRegistry.legendReview'), { percent: reviewPercent })}</span>
           </div>
           <div className="flex items-center gap-1.5 text-emerald-700 font-medium">
             <span className="w-2 h-2 rounded-full bg-emerald-600 shrink-0"></span>
-            <span>معتمد ({safePercent}%)</span>
+            <span>{formatNodes(t('documentsRegistry.legendApproved'), { percent: safePercent })}</span>
           </div>
         </div>
       </div>
@@ -141,20 +143,20 @@ export const ExecutiveDashboardScreen: React.FC<ExecutiveDashboardScreenProps> =
           
           {/* 1. جهة اليمين (50% من العرض): حقل البحث المتسع والمريح */}
           <div className="relative w-full h-11">
-            <Search className="w-4.5 h-4.5 text-[#2C3E28] absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <Search className="w-4.5 h-4.5 text-[#2C3E28] absolute start-4 top-1/2 -translate-y-1/2 pointer-events-none" />
             <input
               id="table-toolbar-search-input"
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="بحث برقم المستند، العنوان، الإدارة، أو الحالة..."
-              className="w-full h-11 pr-11 pl-9 text-xs sm:text-sm font-normal text-slate-800 rounded-2xl border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-[#2C3E28] focus:border-[#2C3E28] transition-all shadow-2xs placeholder:text-slate-400 box-border"
+              placeholder={t('documentsRegistry.searchPlaceholder')}
+              className="w-full h-11 ps-11 pe-9 text-xs sm:text-sm font-normal text-slate-800 rounded-2xl border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-[#2C3E28] focus:border-[#2C3E28] transition-all shadow-2xs placeholder:text-slate-400 box-border"
             />
             {searchQuery && (
               <button
                 onClick={() => setSearchQuery('')}
-                className="absolute left-3.5 top-1/2 -translate-y-1/2 text-xs text-slate-400 hover:text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-full w-5 h-5 flex items-center justify-center transition-all"
-                title="مسح البحث"
+                className="absolute end-3.5 top-1/2 -translate-y-1/2 text-xs text-slate-400 hover:text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-full w-5 h-5 flex items-center justify-center transition-all"
+                title={t('common.clearSearch')}
               >
                 ✕
               </button>
@@ -171,7 +173,7 @@ export const ExecutiveDashboardScreen: React.FC<ExecutiveDashboardScreenProps> =
                   : 'text-slate-700 hover:text-slate-900 hover:bg-slate-100'
               }`}
             >
-              الكل ({documents.length})
+              {formatNodes(t('documentsRegistry.filterAll'), { count: documents.length })}
             </button>
             <button
               onClick={() => setStatusFilter('blocked')}
@@ -182,7 +184,7 @@ export const ExecutiveDashboardScreen: React.FC<ExecutiveDashboardScreenProps> =
               }`}
             >
               <span className="w-2 h-2 rounded-full bg-red-600 shrink-0"></span>
-              <span>محظور ({redDocs.length})</span>
+              <span>{formatNodes(t('documentsRegistry.filterBlocked'), { count: redDocs.length })}</span>
             </button>
             <button
               onClick={() => setStatusFilter('review')}
@@ -193,7 +195,7 @@ export const ExecutiveDashboardScreen: React.FC<ExecutiveDashboardScreenProps> =
               }`}
             >
               <span className="w-2 h-2 rounded-full bg-amber-500 shrink-0"></span>
-              <span className="truncate">قيد المراجعة ({yellowDocs.length})</span>
+              <span className="truncate">{formatNodes(t('documentsRegistry.filterReview'), { count: yellowDocs.length })}</span>
             </button>
             <button
               onClick={() => setStatusFilter('safe')}
@@ -204,7 +206,7 @@ export const ExecutiveDashboardScreen: React.FC<ExecutiveDashboardScreenProps> =
               }`}
             >
               <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0"></span>
-              <span>معتمد ({safeDocs.length})</span>
+              <span>{formatNodes(t('documentsRegistry.filterApproved'), { count: safeDocs.length })}</span>
             </button>
           </div>
 
@@ -212,7 +214,7 @@ export const ExecutiveDashboardScreen: React.FC<ExecutiveDashboardScreenProps> =
 
         {/* Table Content with Equal 5-Column Alignment and Uniform Row Height */}
         <div className="overflow-x-auto">
-          <table className="w-full table-fixed text-right border-collapse text-xs min-w-[960px]">
+          <table className="w-full table-fixed text-start border-collapse text-xs min-w-[960px]">
             <colgroup>
               <col className="w-1/5" />
               <col className="w-1/5" />
@@ -222,11 +224,11 @@ export const ExecutiveDashboardScreen: React.FC<ExecutiveDashboardScreenProps> =
             </colgroup>
             <thead>
               <tr className="border-b border-slate-200 bg-slate-100/80 text-slate-700 font-bold text-xs">
-                <th className="py-3.5 px-4 text-right w-1/5">رقم المستند</th>
-                <th className="py-3.5 px-4 text-right w-1/5">عنوان المستند</th>
-                <th className="py-3.5 px-4 text-right w-1/5">الإدارة المسؤولة</th>
-                <th className="py-3.5 px-4 text-right w-1/5">حالة المستند</th>
-                <th className="py-3.5 px-4 text-right w-1/5">الإجراء</th>
+                <th className="py-3.5 px-4 text-start w-1/5">{t('documentsRegistry.colNumber')}</th>
+                <th className="py-3.5 px-4 text-start w-1/5">{t('documentsRegistry.colTitle')}</th>
+                <th className="py-3.5 px-4 text-start w-1/5">{t('documentsRegistry.colDepartment')}</th>
+                <th className="py-3.5 px-4 text-start w-1/5">{t('documentsRegistry.colStatus')}</th>
+                <th className="py-3.5 px-4 text-start w-1/5">{t('documentsRegistry.colAction')}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -254,30 +256,30 @@ export const ExecutiveDashboardScreen: React.FC<ExecutiveDashboardScreenProps> =
                   >
                     
                     {/* رقم المستند فقط دون نصوص فرعية */}
-                    <td className="py-3.5 px-4 font-mono w-1/5 text-right align-middle">
+                    <td className="py-3.5 px-4 font-mono w-1/5 text-start align-middle">
                       <span className="text-xs font-bold text-slate-900 truncate block">
                         {doc.code}
                       </span>
                     </td>
 
                     {/* عنوان المستند - مقيد بسطرين كحد أقصى */}
-                    <td className="py-3.5 px-4 w-1/5 text-right align-middle">
+                    <td className="py-3.5 px-4 w-1/5 text-start align-middle">
                       <div className="line-clamp-2 text-xs font-bold text-slate-900 leading-snug">
                         {doc.title}
                       </div>
                       <div className="text-[10px] font-normal text-slate-400 mt-0.5 truncate">
-                        تاريخ الإنشاء: {doc.creationDate.split(' ')[0]}
+                        {formatNodes(t('documentsRegistry.createdOn'), { date: doc.creationDate.split(' ')[0] })}
                       </div>
                     </td>
 
                     {/* 1. الإدارة المسؤولة ورئيس القسم: المسمى الوظيفي رمادي فاتح أصغر حجماً */}
-                    <td className="py-3.5 px-4 w-1/5 text-right align-middle">
+                    <td className="py-3.5 px-4 w-1/5 text-start align-middle">
                       <div className="space-y-0.5">
                         <div className="font-bold text-slate-900 text-xs line-clamp-1">
                           {doc.department}
                         </div>
                         <div className="text-[11px] text-slate-700 font-medium line-clamp-1">
-                          المسؤول: <span className="font-bold text-slate-800">{headName}</span>
+                          {`${t('documentsRegistry.ownerLabel')} `}<span className="font-bold text-slate-800">{headName}</span>
                         </div>
                         {headRole && (
                           <div className="text-[10px] text-slate-400 font-normal line-clamp-1 mt-0.5">
@@ -288,26 +290,26 @@ export const ExecutiveDashboardScreen: React.FC<ExecutiveDashboardScreenProps> =
                     </td>
 
                     {/* 2. حالة المستند والتشخيص الرقابي - إشارة ثابتة دون نبض */}
-                    <td className="py-3.5 px-4 w-1/5 text-right align-middle">
+                    <td className="py-3.5 px-4 w-1/5 text-start align-middle">
                       <div className="space-y-1.5">
                         {/* الشارة الملونة الثابتة */}
                         <div>
                           {isBlocked && (
                             <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-red-100 text-red-800 border border-red-200 shadow-2xs">
                               <span className="w-2 h-2 rounded-full bg-red-600 shrink-0"></span>
-                              <span>محظور</span>
+                              <span>{t('common.blocked')}</span>
                             </span>
                           )}
                           {isReview && (
                             <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-100 text-amber-900 border border-amber-200 shadow-2xs">
                               <span className="w-2 h-2 rounded-full bg-amber-500 shrink-0"></span>
-                              <span>قيد المراجعة</span>
+                              <span>{t('common.underReview')}</span>
                             </span>
                           )}
                           {isSafe && (
                             <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200 shadow-2xs">
                               <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0"></span>
-                              <span>معتمد</span>
+                              <span>{t('common.approved')}</span>
                             </span>
                           )}
                         </div>
@@ -315,24 +317,24 @@ export const ExecutiveDashboardScreen: React.FC<ExecutiveDashboardScreenProps> =
                         {/* نص التشخيص وسبب الإنذار - مقيد بسطرين كحد أقصى */}
                         {isBlocked && (
                           <div className="line-clamp-2 text-[11px] leading-snug font-medium text-slate-700">
-                            توقيع منفرد ({headName}) • محال لمعالي رئيس المنظومة
+                            {formatNodes(t('documentsRegistry.diagnosisBlocked'), { name: headName })}
                           </div>
                         )}
                         {isReview && (
                           <div className="line-clamp-2 text-[11px] leading-snug font-medium text-slate-700">
-                            اطلع عليه شخصان فقط • 2 من 4 تواقيع • محال لرئيس قسم المالية
+                            {t('documentsRegistry.diagnosisReview')}
                           </div>
                         )}
                         {isSafe && (
                           <div className="line-clamp-2 text-[11px] leading-snug font-medium text-slate-700">
-                            اكتملت التواقيع واعتماد الرؤساء • موافقة تلقائية للنشر الرقمي
+                            {t('documentsRegistry.diagnosisApproved')}
                           </div>
                         )}
                       </div>
                     </td>
 
                     {/* 3. الإجراء: زر معاينة المستند بنمط Outlined مريح بصرياً مع Hover بلون الهوية */}
-                    <td className="py-3.5 px-4 w-1/5 text-right align-middle">
+                    <td className="py-3.5 px-4 w-1/5 text-start align-middle">
                       <button
                         id={`btn-view-dossier-${doc.id}`}
                         onClick={(e) => {
@@ -341,8 +343,8 @@ export const ExecutiveDashboardScreen: React.FC<ExecutiveDashboardScreenProps> =
                         }}
                         className="group inline-flex items-center gap-2 px-3.5 py-2 rounded-xl font-bold text-xs bg-white hover:bg-[#2C3E28] text-[#2C3E28] hover:text-white border border-[#2C3E28]/40 hover:border-[#2C3E28] shadow-2xs hover:shadow-md hover:shadow-[#2C3E28]/15 transition-all duration-200"
                       >
-                        <span>معاينة المستند</span>
-                        <ArrowLeft className="w-3.5 h-3.5 text-[#2C3E28] group-hover:text-white group-hover:-translate-x-0.5 transition-all duration-200" />
+                        <span>{t('documentsRegistry.viewDocument')}</span>
+                        <ArrowLeft className="w-3.5 h-3.5 text-[#2C3E28] group-hover:text-white ltr:rotate-180 rtl:group-hover:-translate-x-0.5 ltr:group-hover:translate-x-0.5 transition-all duration-200" />
                       </button>
                     </td>
 

@@ -3,6 +3,7 @@ import { DocumentDossier } from '../types';
 import { PdfDocumentViewer } from './PdfDocumentViewer';
 import { DigitalFootprintPanel } from './DigitalFootprintPanel';
 import { ArrowRight } from 'lucide-react';
+import { useLanguage } from '../i18n';
 
 interface FileDossierScreenProps {
   document: DocumentDossier;
@@ -17,6 +18,7 @@ export const FileDossierScreen: React.FC<FileDossierScreenProps> = ({
   onNavigateToRiskInspection,
   onBackToDashboard,
 }) => {
+  const { t } = useLanguage();
   return (
     <div id="file-dossier-screen" className="space-y-4">
       
@@ -31,22 +33,22 @@ export const FileDossierScreen: React.FC<FileDossierScreenProps> = ({
             {/* Unified 4 metadata items in thin regular gray font without contrast */}
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500 font-normal mt-2">
               <div className="flex items-center gap-1">
-                <span className="text-slate-500 font-normal">الرقم المرجعي:</span>
+                <span className="text-slate-500 font-normal">{t('dossier.referenceNumber')}</span>
                 <span className="text-slate-500 font-normal">{document.code}</span>
               </div>
               <span className="text-slate-300 hidden sm:inline">•</span>
               <div className="flex items-center gap-1">
-                <span className="text-slate-500 font-normal">الإدارة المسؤولة:</span>
+                <span className="text-slate-500 font-normal">{t('dossier.department')}</span>
                 <span className="text-slate-500 font-normal">{document.department}</span>
               </div>
               <span className="text-slate-300 hidden sm:inline">•</span>
               <div className="flex items-center gap-1">
-                <span className="text-slate-500 font-normal">المسؤول/المُعد:</span>
+                <span className="text-slate-500 font-normal">{t('dossier.preparer')}</span>
                 <span className="text-slate-500 font-normal">{document.responsibleDeptHead.split('(')[0].trim()}</span>
               </div>
               <span className="text-slate-300 hidden sm:inline">•</span>
               <div className="flex items-center gap-1">
-                <span className="text-slate-500 font-normal">تاريخ الإنشاء:</span>
+                <span className="text-slate-500 font-normal">{t('dossier.createdOn')}</span>
                 <span className="text-slate-500 font-normal">{document.creationDate.split(' ')[0]}</span>
               </div>
             </div>
@@ -57,19 +59,19 @@ export const FileDossierScreen: React.FC<FileDossierScreenProps> = ({
             {document.riskLevel === 'blocked' && (
               <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-red-50 text-red-900 border border-red-200 shadow-2xs">
                 <span className="w-2 h-2 rounded-full bg-red-600"></span>
-                <span>محظور (توقيع منفرد)</span>
+                <span>{t('dossier.badgeBlocked')}</span>
               </span>
             )}
             {document.riskLevel === 'review' && (
               <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-amber-50 text-amber-900 border border-amber-200 shadow-2xs">
                 <span className="w-2 h-2 rounded-full bg-amber-500"></span>
-                <span>قيد المراجعة (نقص في التواقيع)</span>
+                <span>{t('dossier.badgeReview')}</span>
               </span>
             )}
             {document.riskLevel === 'safe' && (
               <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-emerald-50 text-emerald-900 border border-emerald-200 shadow-2xs">
                 <span className="w-2 h-2 rounded-full bg-emerald-600"></span>
-                <span>معتمد وجاهز للتنفيذ</span>
+                <span>{t('common.approvedReady')}</span>
               </span>
             )}
 
@@ -78,10 +80,10 @@ export const FileDossierScreen: React.FC<FileDossierScreenProps> = ({
                 id="back-to-files-list-btn"
                 onClick={onBackToDashboard}
                 className="group flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-white hover:bg-[#2C3E28] text-[#2C3E28] hover:text-white border border-[#2C3E28]/40 hover:border-[#2C3E28] shadow-2xs hover:shadow-md transition-all duration-200 font-bold text-xs shrink-0 cursor-pointer"
-                title="العودة إلى سجل المستندات"
+                title={t('dossier.backTitle')}
               >
-                <ArrowRight className="w-4 h-4 text-[#2C3E28] group-hover:text-white group-hover:translate-x-0.5 transition-all duration-200" />
-                <span>العودة لسجل المستندات</span>
+                <ArrowRight className="w-4 h-4 text-[#2C3E28] group-hover:text-white ltr:rotate-180 rtl:group-hover:translate-x-0.5 ltr:group-hover:-translate-x-0.5 transition-all duration-200" />
+                <span>{t('dossier.back')}</span>
               </button>
             )}
           </div>

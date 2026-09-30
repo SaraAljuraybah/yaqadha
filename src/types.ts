@@ -110,6 +110,74 @@ export interface DocumentDossier {
     legalArticles: string[];
     recommendedAction: string;
   };
+
+  // Input sent to the Yaqadha procurement risk model (language-neutral)
+  riskInput?: RiskEvaluationInput;
+}
+
+// ---- Yaqadha procurement risk model API (proxied through server.ts) ----
+// The API rejects unknown fields with 422, so these shapes match its contract exactly.
+
+export type RiskRuleId = 'PROC_001' | 'DOC_001' | 'FIN_001' | 'COI_001' | 'CYB_001' | 'CAP_001';
+
+export type RiskFindingStatus = 'none' | 'weak_signal' | 'observed' | 'corroborated' | 'confirmed';
+
+export interface RiskFinding {
+  rule_id: RiskRuleId;
+  status: RiskFindingStatus;
+  manifestation: string;
+  evidence_references: string[];
+}
+
+export interface RiskEvaluationInput {
+  record_id: string;
+  tender_value_amount: number;
+  tender_value_currency: string;
+  lot_count: number;
+  bid_count: number;
+  tenderer_count: number;
+  award_count: number;
+  supplier_count: number;
+  document_count: number;
+  findings: RiskFinding[];
+}
+
+export interface RiskTriggeredRule {
+  rule_id: string;
+  domain: string;
+  violation_type: string;
+  status: string;
+  evidence_confidence: number;
+  impact_level: number;
+  severity: string;
+  critical_override: boolean;
+  manifestation: string;
+  evidence_references: string[];
+  legal_basis: string;
+}
+
+export interface RiskEvaluationResult {
+  record_id: string;
+  model_version: string;
+  configuration_version: string;
+  anomaly_raw_score: number;
+  anomaly_percentile: number;
+  currency_normalization: string;
+  governance_evidence: number;
+  blended_likelihood: number;
+  likelihood_score: number;
+  impact_level: number;
+  base_risk_score: number;
+  applied_floor: number;
+  risk_score: number;
+  risk_color: 'Green' | 'Yellow' | 'Red';
+  review_required: boolean;
+  critical_override: boolean;
+  triggered_rules: RiskTriggeredRule[];
+  matrix_handling: string[];
+  recommended_action: string;
+  explanation: string;
+  disclaimer: string;
 }
 
 export type ActiveScreen = 
@@ -118,4 +186,5 @@ export type ActiveScreen =
   | 'yellow_risk_inspection' 
   | 'red_risk_inspection' 
   | 'executive_dashboard'
-  | 'access_management';
+  | 'access_management'
+  | 'tender_risk_assessment';
