@@ -123,17 +123,18 @@ async function callRiskApi(apiPath: string, init: { method: "GET" | "POST"; body
     return riskError(502, "configuration_error", "The risk model rejected the platform's credentials (server configuration error).");
   }
 
-  if (upstream.status === 422) {
+  if (upstream.status === 422 || upstream.status === 400) {
     // Log where and why validation failed, never the submitted values
     const details = Array.isArray(payload?.detail)
       ? payload.detail.map((d: any) => `${(d?.loc ?? []).join(".")}: ${d?.type ?? "invalid"}`).join("; ")
       : "no details";
-    console.error(`[risk] ${apiPath}: invalid input (HTTP 422) — ${details}`);
-    return riskError(422, "invalid_input", "The risk model rejected the submitted document data as invalid.");
+    console.error(`[risk] ${apiPath}: invalid input (HTTP ${upstream.status}) — ${details}`);
+    return riskError(422, "invalid_input", "Invalid input data: the risk model rejected the submitted data.");
   }
 
-  if (upstream.status === 502 || upstream.status === 503 || upstream.status === 504) {
-    console.error(`[risk] ${apiPath}: upstream unavailable (HTTP ${upstream.status})`);
+  // 5xx, rate limiting/timeouts, and non-JSON bodies (e.g. a proxy page while the free instance wakes up)
+  if (upstream.status >= 500 || upstream.status === 408 || upstream.status === 429 || !payload) {
+    console.error(`[risk] ${apiPath}: upstream unavailable (HTTP ${upstream.status}${payload ? "" : ", non-JSON body"})`);
     return riskError(503, "unavailable", "The risk model service is waking up or unavailable. Please try again in a moment.");
   }
 

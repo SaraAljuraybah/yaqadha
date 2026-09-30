@@ -145,8 +145,31 @@ export const validateForm = (form: TenderFormState): FormErrors => {
 export const hasErrors = (errors: FormErrors): boolean =>
   Object.keys(errors.fields).length > 0 || Object.keys(errors.findings).length > 0;
 
-/** Builds exactly the API contract — no extra fields (the API rejects unknown fields with 422). Call only on a valid form. */
-export const toRiskInput = (form: TenderFormState): RiskEvaluationInput => ({
+/**
+ * The single exact-contract request builder used by every caller (Tender Risk Assessment form and
+ * the Indicators demo documents). Copies only the contract fields, so nothing extra can reach the API
+ * (it rejects unknown fields with 422).
+ */
+export const buildRiskRequest = (input: RiskEvaluationInput): RiskEvaluationInput => ({
+  record_id: input.record_id,
+  tender_value_amount: input.tender_value_amount,
+  tender_value_currency: input.tender_value_currency,
+  lot_count: input.lot_count,
+  bid_count: input.bid_count,
+  tenderer_count: input.tenderer_count,
+  award_count: input.award_count,
+  supplier_count: input.supplier_count,
+  document_count: input.document_count,
+  findings: input.findings.map((finding) => ({
+    rule_id: finding.rule_id,
+    status: finding.status,
+    manifestation: finding.manifestation,
+    evidence_references: [...finding.evidence_references],
+  })),
+});
+
+/** Converts a valid form into the exact API contract. Call only on a valid form. */
+export const toRiskInput = (form: TenderFormState): RiskEvaluationInput => buildRiskRequest({
   record_id: form.record_id.trim(),
   tender_value_amount: parseNumber(form.tender_value_amount) as number,
   tender_value_currency: form.tender_value_currency,
