@@ -103,6 +103,16 @@
     filter: brightness(2.4) saturate(0.7);
   }
 
+  /* Native select dropdowns on the Tender Risk Assessment page follow the dark palette */
+  html.dark #tender-risk-assessment-screen select {
+    color-scheme: dark;
+  }
+  html.dark #tender-risk-assessment-screen select option,
+  html.dark #tender-risk-assessment-screen select optgroup {
+    background-color: #161C18;
+    color: #EEF2EF;
+  }
+
   @media (prefers-reduced-motion: no-preference) {
     body {
       transition: background-color 0.2s ease, color 0.2s ease;
