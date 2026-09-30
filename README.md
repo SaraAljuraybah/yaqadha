@@ -1,147 +1,99 @@
-<div align="center">
+# Yaqadha Platform
 
-<img src="public/image_3.png" alt="شعار يقظة" width="110" />
+Yaqadha is a React, Vite, TypeScript, Tailwind CSS, and Express platform for tender risk inspection, document governance, and proactive integrity review.
 
-# يقظة | Yaqadha
+## Architecture
 
-**ذكاء يستبق ونزاهة ترتقي**
+- Vercel serves the Vite build in `dist/` as static files.
+- Vercel runs `api/index.ts` as the platform API function.
+- `src/server/app.ts` exports `createApiApp()`, the shared Express API used by both local development and Vercel.
+- `server.ts` is the local host only: it loads local `.env`, mounts `createApiApp()`, adds Vite middleware in development, serves `dist/` in production, and listens on `PORT`.
+- Render hosts the private Yaqadha risk model API. The browser never calls Render directly; it only calls `/api/risk/*` through the platform API proxy.
 
-منصة ذكاء أعمال تجمع بين صناعة العطاءات الاستراتيجية ودرع الرقابة الاستباقية،
-فتفحص كل وثيقة وقرار ضد مؤشرات المخاطر ومحاذير الامتثال قبل اعتمادها.
+## Local Development
 
-<br/>
+Requirements:
 
-![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=white)
-![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?logo=typescript&logoColor=white)
-![Vite](https://img.shields.io/badge/Vite-8-646CFF?logo=vite&logoColor=white)
-![Tailwind CSS](https://img.shields.io/badge/Tailwind-4-06B6D4?logo=tailwindcss&logoColor=white)
-![Express](https://img.shields.io/badge/Express-API-000000?logo=express&logoColor=white)
-![Gemini](https://img.shields.io/badge/Gemini-AI-8E75B2?logo=googlegemini&logoColor=white)
+- Node.js 22
+- npm
 
-[المشكلة](#-المشكلة) · [المحركات](#️-المحركات-الرئيسية) · [التشغيل المحلي](#-التشغيل-المحلي) · [الفريق](#-فريق-العمل)
-
-</div>
-
----
-
-## 🎯 المشكلة
-
-تواجه المنشآت في قطاع الأعمال ومنافسات العطاءات الحكومية والخاصة معضلتين متلازمتين:
-
-- **هدر الموارد والوقت في إعداد العروض:** تشتت البيانات بين الفرق، وبطء صياغة المتطلبات المعقدة، وضعف توظيف نقاط القوة المؤسسية.
-- **مخاطر الثغرات الخفية والاستبعاد:** غياب الفحص الاستباقي لكراسات الشروط والأنظمة الرقابية، مما قد يؤدي إلى استبعاد العطاء لأسباب شكلية أو الوقوع في شبهات تعارض المصالح وأخطاء الامتثال.
-
-## 💡 الحل
-
-«يقظة» تنقل المنشآت من وضعية **الدفاع والتصحيح** إلى موقع **السيادة والتحصين**؛ منصة موحدة تحلّل المنافسات وتصوغ العروض، وتفحص في الوقت ذاته كل بند وقرار ضد مؤشرات المخاطر في الزمن الحقيقي (**Real-Time Pre-emptive Audit**).
-
-## ⚙️ المحركات الرئيسية
-
-| المحرك | الوصف |
-|---|---|
-| **محرك العروض الاستراتيجية**<br/>`Bidding Intelligence Engine` | تحليل عميق لكراسات المنافسات والمواصفات، وتوليد هيكليات عروض احترافية تتوافق مع متطلبات الجهات الطارحة. |
-| **درع الامتثال والتحصين الاستباقي**<br/>`Integrity & Governance Shield` | رادار ذكي يرصد التضاربات المحتملة ومؤشرات الثغرات الرقابية قبل اعتماد العرض أو إبرام العقود. |
-| **لوحات ذكاء القرارات والمؤشرات**<br/>`Predictive Insights & Analytics` | واجهات تفاعلية تمكّن القيادة من قراءة احتمالات الفوز ونقاط القوة والضعف ومستوى الأمان التنظيمي قبل الإرسال. |
-
-### ما يتضمنه النموذج الأولي
-
-- 🚦 **نظام الإشارات الضوئية للوثائق:** معتمد (أخضر) · قيد المراجعة (أصفر) · محظور (أحمر).
-- 🔍 **فحص ما قبل النشر:** التحقق من اكتمال سلسلة التواقيع والاعتمادات الإلزامية.
-- 🧾 **تتبع الأثر الرقمي:** سجل الاطلاع والتوقيع لكل وثيقة مع رصد الأنماط المشبوهة.
-- 🤖 **التحليل بالذكاء الاصطناعي:** تقرير نزاهة موجز يستند إلى المواد النظامية، مع محرك قواعد احتياطي يعمل دون اتصال بالنموذج.
-- 📤 **التصعيد وطلب الإفادة:** مسارات إجرائية للإحالة إلى الإدارة العليا وجهات الرقابة.
-- 👥 **إدارة الحسابات والصلاحيات.**
-
----
-
-## 🏗️ البنية التقنية
-
-```
-┌─────────────────────────────┐       ┌───────────────────────────────┐
-│  واجهة React 19 + Tailwind  │──────▶│   خادم Express (server.ts)    │
-│  (Vite · TypeScript · RTL)  │ /api  │  ├─ GET  /api/health          │
-└─────────────────────────────┘       │  └─ POST /api/audit/ai-analyze│
-                                      │        │                      │
-                                      │        ▼                      │
-                                      │  Gemini API  أو  محرك القواعد │
-                                      └───────────────────────────────┘
-```
-
-```
-.
-├── server.ts                 # خادم Express ونقاط الـ API
-├── index.html
-├── public/                   # الشعار والأصول الثابتة
-└── src/
-    ├── App.tsx               # هيكل التطبيق والتنقّل بين الشاشات
-    ├── components/           # الشاشات والنوافذ المنبثقة
-    ├── data/documents.ts     # بيانات تجريبية للوثائق
-    ├── types.ts
-    └── index.css
-```
-
----
-
-## 🚀 التشغيل المحلي
-
-**المتطلبات:** Node.js ‏20.19 أو أحدث.
+Install dependencies:
 
 ```bash
-# 1. استنساخ المستودع
-git clone https://github.com/<USERNAME>/yaqadha.git
-cd yaqadha
-
-# 2. تثبيت الحزم
 npm install
+```
 
-# 3. إعداد متغيرات البيئة (اختياري لتفعيل Gemini)
-cp .env.example .env
+Create `.env` locally. Do not commit it:
 
-# 4. التشغيل
+```bash
+YAQADHA_API_BASE_URL=https://your-render-model-service.example.com
+YAQADHA_API_KEY=your-private-model-api-key
+GEMINI_API_KEY=optional-gemini-key
+```
+
+Run the development server:
+
+```bash
 npm run dev
 ```
 
-ثم افتح: <http://localhost:3000>
+Open <http://localhost:3000>.
 
-| الأمر | الوظيفة |
-|---|---|
-| `npm run dev` | تشغيل خادم التطوير |
-| `npm run build` | بناء نسخة الإنتاج في `dist/` |
-| `npm start` | تشغيل نسخة الإنتاج |
-| `npm run lint` | فحص الأنواع عبر TypeScript |
+Production-style local run:
 
-### متغيرات البيئة
+```bash
+npm run build
+npm start
+```
 
-| المتغير | إلزامي | الوصف |
-|---|---|---|
-| `GEMINI_API_KEY` | لا | مفتاح Gemini لتفعيل التحليل الذكي. بدونه يعمل محرك القواعد الداخلي. |
+## Environment Variables
 
----
+Server-only variables:
 
-## 👩‍💻 فريق العمل
+| Variable | Required | Description |
+| --- | --- | --- |
+| `YAQADHA_API_BASE_URL` | Yes | Base URL for the private Render risk model API. |
+| `YAQADHA_API_KEY` | Yes | API key sent server-side to the private risk model. |
+| `GEMINI_API_KEY` | No | Enables Gemini analysis for `/api/audit/ai-analyze`; without it, the local rule engine is used. |
 
-| الاسم | الدور |
-|---|---|
-| **جنا السعيد** | قائدة المشروع وصاحبة الفكرة |
-| **ألين المالكي** | الحوكمة والامتثال |
-| **ديمه الفرهود** | مهندسة ذكاء اصطناعي |
-| **العذوب العصيمي** | محللة بيانات |
-| **ساره الجريبه** | مطورة واجهات وأنظمة |
-| **وسن البنيان** | مصممة تجربة المستخدم |
+Do not prefix secrets with `VITE_`. Vite exposes `VITE_*` values to the client bundle.
 
----
+## Vercel Deployment
 
-## 🏆 الإنجازات
+1. Import this repository into Vercel.
+2. Keep the default project framework as Vite, or use the included `vercel.json`.
+3. Set these Vercel environment variables:
+   - `YAQADHA_API_BASE_URL`
+   - `YAQADHA_API_KEY`
+   - Optional: `GEMINI_API_KEY`
+4. Deploy.
 
-- المركز الأول على مستوى المملكة في مسابقة النزاهة وحوكمة الأنظمة.
-- مشروع مقدَّم ضمن مبادرة **SAIF**.
+The included Vercel configuration uses:
 
----
+- `buildCommand`: `vite build`
+- `outputDirectory`: `dist`
+- `framework`: `vite`
+- API rewrite: `/api/(.*)` to `/api`
+- SPA fallback rewrite: non-file paths to `/index.html`
+- API function `maxDuration`: `60`
 
-<div align="center">
+The risk proxy timeout is set just below the Vercel function limit, so cold starts from the Render free tier return a clean service-waking response instead of a platform timeout.
 
-**يقظة**: من ردّ الفعل اللاحق إلى الحصانة الاستباقية.
+## Scripts
 
-<sub>© 2026 فريق يقظة. جميع الحقوق محفوظة.</sub>
+| Command | Purpose |
+| --- | --- |
+| `npm run dev` | Start the local Express/Vite development server. |
+| `npm run build` | Build the Vite app into `dist/`. |
+| `npm start` | Start the local production server and serve `dist/`. |
+| `npm run lint` | Run TypeScript checks with `tsc --noEmit`. |
+| `npm run preview` | Run Vite preview for the static app. |
 
-</div>
+## API Routes
+
+These routes are served identically by local `server.ts` and Vercel `api/index.ts`:
+
+- `GET /api/health`
+- `POST /api/audit/ai-analyze`
+- `GET /api/risk/health`
+- `POST /api/risk/evaluate`
