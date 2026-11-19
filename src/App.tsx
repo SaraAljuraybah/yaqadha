@@ -6,6 +6,7 @@ import { Sidebar } from './components/Sidebar';
 import { TopHeader } from './components/TopHeader';
 import { DemoBanner } from './components/DemoBanner';
 import { PlaceholderScreen } from './components/PlaceholderScreen';
+import { OverviewScreen } from './components/OverviewScreen';
 import { FileDossierScreen } from './components/FileDossierScreen';
 import { UnifiedIndicatorsScreen } from './components/UnifiedIndicatorsScreen';
 import { ExecutiveDashboardScreen } from './components/ExecutiveDashboardScreen';
@@ -34,7 +35,7 @@ interface ToastState {
 }
 
 export default function App() {
-  const [activeScreen, setActiveScreen] = useState<ActiveScreen>('executive_dashboard');
+  const [activeScreen, setActiveScreen] = useState<ActiveScreen>('overview');
   const { lang, t } = useLanguage();
   const documents = useMemo<DocumentDossier[]>(() => getDocuments(lang), [lang]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -161,8 +162,8 @@ export default function App() {
 
         <main className="flex-1 w-full p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto">
 
-          {/* نظرة عامة — built in stage 2 */}
-          {activeScreen === 'overview' && <PlaceholderScreen title={t('sidebar.overview')} stage={2} />}
+          {/* نظرة عامة (default page) */}
+          {activeScreen === 'overview' && <OverviewScreen onOpenDocument={openDocumentByCode} />}
 
           {/* سجل المستندات */}
           {activeScreen === 'executive_dashboard' && (

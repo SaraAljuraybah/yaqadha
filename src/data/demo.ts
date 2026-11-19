@@ -19,6 +19,7 @@ const join = (...parts: (LocalizedText | string)[]): LocalizedText => ({
 // ----------------------------------------------------------------------------
 export const DEMO_NOW = {
   isoDate: '2026-11-08',
+  isoDateTime: '2026-11-08T10:42:00',
   time: '10:42',
   dateLabel: { ar: 'الأحد 8 نوفمبر 2026', en: 'Sunday, 8 November 2026' },
 };
@@ -28,6 +29,12 @@ export const DEMO_NOW = {
 //    These are demo references and must be verified before any real use.
 // ----------------------------------------------------------------------------
 export const LEGAL_REFERENCES = {
+  /**
+   * VERIFY: attribution changed in the UI redesign. Before it, the platform cited article 43 as
+   * "المادة (43) من لائحة المنافسات والمشتريات" (document data) and as
+   * "المادة (43) من لائحة المنافسات والمشتريات والاعتمادات الإدارية" (indicators screen).
+   * It is now attributed everywhere to "لائحة الحوكمة والاعتمادات الإدارية". See LEGAL_REFERENCE_NOTES.
+   */
   governanceArt43: {
     ar: 'المادة 43 من لائحة الحوكمة والاعتمادات الإدارية',
     en: 'Article 43 of the Governance & Administrative Approvals Regulation',
@@ -63,6 +70,13 @@ export const LEGAL_REFERENCES = {
 } satisfies Record<string, LocalizedText>;
 
 export type LegalReferenceId = keyof typeof LEGAL_REFERENCES;
+
+/** Verification notes for references whose wording or attribution changed (not shown in the UI). */
+export const LEGAL_REFERENCE_NOTES: Partial<Record<LegalReferenceId, string>> = {
+  governanceArt43:
+    'Attribution changed from "لائحة المنافسات والمشتريات" to "لائحة الحوكمة والاعتمادات الإدارية" — needs verification.',
+  internalGovernancePolicy: 'Used as the basis of violation 2 with no article number, pending a verified reference.',
+};
 
 export const legalRef = (id: LegalReferenceId, lang: Lang): string => LEGAL_REFERENCES[id][lang];
 
@@ -115,7 +129,87 @@ export const DEPARTMENT_INTEGRITY: { department: DepartmentId; score: number }[]
 ];
 
 // ----------------------------------------------------------------------------
-// 5. Headline counts — every page reads its numbers from here
+// 5. Items awaiting the current user's decision (overview list, sidebar and bell counts)
+// ----------------------------------------------------------------------------
+export type PendingDecisionKind = 'urgent_approval' | 'exception_request' | 'suspension';
+
+export interface PendingDecision {
+  code: string;
+  kind: PendingDecisionKind;
+  /** Person shown next to the code (for YQ-8841: the delegated finance stage) */
+  person: string;
+  /** When the item reached the current user */
+  receivedAt: string;
+}
+
+const localizedPendingDecisions: Localizable<PendingDecision>[] = [
+  // Routed yesterday 02:35 PM, right after the delegated 12-second signature
+  { code: 'YQ-8841', kind: 'urgent_approval', person: FINANCE_STAGE_DELEGATED, receivedAt: '2026-11-07T14:35:12' },
+  { code: 'PO-3310', kind: 'exception_request', person: PEOPLE.salman.name, receivedAt: '2026-11-08T08:05:00' },
+  { code: 'DOC-2026-01', kind: 'suspension', person: PEOPLE.ahmed.name, receivedAt: '2026-11-08T05:42:19' },
+];
+
+export const getPendingDecisions = (lang: Lang): PendingDecision[] =>
+  localize<PendingDecision[]>(localizedPendingDecisions, lang);
+
+/** Whole hours the oldest pending item has been waiting at the demo "now". */
+export const oldestPendingHours = (): number => {
+  const now = new Date(DEMO_NOW.isoDateTime).getTime();
+  const oldest = Math.min(...localizedPendingDecisions.map((d) => new Date(d.receivedAt as string).getTime()));
+  return Math.floor((now - oldest) / 3_600_000);
+};
+
+// ----------------------------------------------------------------------------
+// 6. Latest alerts (overview)
+// ----------------------------------------------------------------------------
+export interface LatestAlert {
+  id: string;
+  tone: 'red' | 'amber' | 'green';
+  title: string;
+  detail: string;
+  timeLabel: string;
+  code: string;
+}
+
+const localizedLatestAlerts: Localizable<LatestAlert>[] = [
+  {
+    id: 'a-1',
+    tone: 'red',
+    title: { ar: 'توقيع منفرد', en: 'Single signature' },
+    detail: join('DOC-2026-01 · ', DEPARTMENTS.it),
+    timeLabel: { ar: '05:42 ص', en: '05:42 AM' },
+    code: 'DOC-2026-01',
+  },
+  {
+    id: 'a-2',
+    tone: 'amber',
+    title: { ar: 'اطلاع خارج وقت الدوام', en: 'After-hours access' },
+    detail: join(PEOPLE.ahmed.name, { ar: ' · كراسة التوسع التقني', en: ' · Technical Expansion Booklet' }),
+    timeLabel: { ar: '05:40 ص', en: '05:40 AM' },
+    code: 'DOC-2026-01',
+  },
+  {
+    id: 'a-3',
+    tone: 'amber',
+    title: { ar: 'اعتماد مستعجل', en: 'Urgent approval' },
+    detail: { ar: 'YQ-8841 · 38 صفحة خلال 12 ثانية', en: 'YQ-8841 · 38 pages in 12 seconds' },
+    timeLabel: { ar: 'أمس', en: 'Yesterday' },
+    code: 'YQ-8841',
+  },
+  {
+    id: 'a-4',
+    tone: 'green',
+    title: { ar: 'اكتملت سلسلة الاعتماد', en: 'Approval chain completed' },
+    detail: { ar: 'BG-2026 · ميزانية التشغيل السنوية', en: 'BG-2026 · Annual Operating Budget' },
+    timeLabel: { ar: 'أمس', en: 'Yesterday' },
+    code: 'BG-2026',
+  },
+];
+
+export const getLatestAlerts = (lang: Lang): LatestAlert[] => localize<LatestAlert[]>(localizedLatestAlerts, lang);
+
+// ----------------------------------------------------------------------------
+// 7. Headline counts — every page reads its numbers from here
 // ----------------------------------------------------------------------------
 export const DEMO_STATS = {
   totalDocuments: 60,
@@ -123,17 +217,16 @@ export const DEMO_STATS = {
   underReview: 8, // includes documents pending final approval
   suspended: 3, // precautionary suspensions
   departments: 5,
-  awaitingDecision: 3, // items that need the current user's decision
-  suspendedAwaitingDecision: 1, // DOC-2026-01 only
-  activeAlerts: 2,
+  awaitingDecision: localizedPendingDecisions.length, // 3
+  suspendedAwaitingDecision: localizedPendingDecisions.filter((d) => d.kind === 'suspension').length, // 1 (DOC-2026-01)
+  activeAlerts: 2, // unresolved alerts: DOC-2026-01 single signature + YQ-8841 urgent approval
   approvedThisMonth: 27,
   integrityIndex: 86,
   integrityDelta: 4,
-  oldestPendingHours: 5,
 };
 
 // ----------------------------------------------------------------------------
-// 6. Documents registry — the 6 detailed rows shown out of the 60 documents
+// 8. Documents registry — the 6 detailed rows shown out of the 60 documents
 // ----------------------------------------------------------------------------
 export type RegisterStatus = 'suspended' | 'under_review' | 'pending_approval' | 'approved';
 
@@ -214,7 +307,7 @@ export const getRegisterDocuments = (lang: Lang): RegisterDocument[] =>
   localize<RegisterDocument[]>(localizedRegister, lang);
 
 // ----------------------------------------------------------------------------
-// 7. Notifications (bell menu) — 3 need a decision, 2 are for information
+// 9. Notifications (bell menu) — 3 need a decision, 2 are for information
 // ----------------------------------------------------------------------------
 export type NotificationKind = 'urgent_approval' | 'exception_request' | 'suspension' | 'after_hours' | 'chain_completed';
 
@@ -274,7 +367,7 @@ export const getNotifications = (lang: Lang): DemoNotification[] =>
   localize<DemoNotification[]>(localizedNotifications, lang);
 
 // ----------------------------------------------------------------------------
-// 8. DOC-2026-01 case timeline (shown on the case page)
+// 10. DOC-2026-01 case timeline (shown on the case page)
 // ----------------------------------------------------------------------------
 export interface CaseTimelineEvent {
   id: string;
@@ -329,7 +422,7 @@ export const getCaseTimeline = (lang: Lang): CaseTimelineEvent[] =>
   localize<CaseTimelineEvent[]>(localizedCaseTimeline, lang);
 
 // ----------------------------------------------------------------------------
-// 9. DOC-2026-01 detected violations (each with its legal basis)
+// 11. DOC-2026-01 detected violations (each with its legal basis)
 // ----------------------------------------------------------------------------
 export const CASE_VIOLATIONS: { text: LocalizedText; reference: LegalReferenceId }[] = [
   {
@@ -347,7 +440,7 @@ export const CASE_VIOLATIONS: { text: LocalizedText; reference: LegalReferenceId
 ];
 
 // ----------------------------------------------------------------------------
-// 10. Temporary delegation (Tariq on leave → Salman)
+// 12. Temporary delegation (Tariq on leave → Salman)
 // ----------------------------------------------------------------------------
 export const DELEGATION = {
   from: PEOPLE.tariq.name,
@@ -362,7 +455,7 @@ export const DELEGATION = {
 };
 
 // ----------------------------------------------------------------------------
-// 11. Accounts & permissions (10 users)
+// 13. Accounts & permissions (10 users)
 // ----------------------------------------------------------------------------
 export interface UserAccount {
   id: string;
@@ -494,7 +587,7 @@ const localizedUsers: Localizable<UserAccount>[] = [
 export const getUsers = (lang: Lang): UserAccount[] => localize<UserAccount[]>(localizedUsers, lang);
 
 // ----------------------------------------------------------------------------
-// 12. Detailed document dossiers (DOC-2026-01, YQ-8841, BG-2026)
+// 14. Detailed document dossiers (DOC-2026-01, YQ-8841, BG-2026)
 // ----------------------------------------------------------------------------
 const ahmedRole = { ar: 'مدير إدارة تقنية المعلومات (المُعد)', en: 'Director of Information Technology (Preparer)' };
 const tariqRole = { ar: 'رئيس قسم المالية والميزانية', en: 'Head of Finance & Budget' };
