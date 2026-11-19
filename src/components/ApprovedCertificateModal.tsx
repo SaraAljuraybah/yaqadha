@@ -1,34 +1,7 @@
 import React, { useState } from 'react';
 import { X, ShieldCheck, Download, Check, UserCheck, FileCheck } from 'lucide-react';
-import { formatNodes, Localizable, localize, useLanguage } from '../i18n';
-
-interface ApprovedSigner {
-  id: string;
-  name: string;
-  role: string;
-  signedAt: string;
-}
-
-const localizedApprovedSigners: Localizable<ApprovedSigner>[] = [
-  {
-    id: 's-1',
-    name: { ar: 'د. عبد الله السالم', en: 'Dr. Abdullah Al-Salem' },
-    role: { ar: 'مدير إدارة الموارد المالية (الشؤون المالية)', en: 'Director of Financial Resources (Financial Affairs)' },
-    signedAt: { ar: '2026-09-18 09:15 ص', en: '2026-09-18 09:15 AM' },
-  },
-  {
-    id: 's-2',
-    name: { ar: 'أ. سارة المنصور', en: 'Ms. Sarah Al-Mansour' },
-    role: { ar: 'المستشار القانوني العام (الشؤون القانونية)', en: 'General Legal Counsel (Legal Affairs)' },
-    signedAt: { ar: '2026-09-18 11:30 ص', en: '2026-09-18 11:30 AM' },
-  },
-  {
-    id: 's-3',
-    name: { ar: 'م. خالد التميمي', en: 'Eng. Khalid Al-Tamimi' },
-    role: { ar: 'رئيس قسم تقنية المعلومات والمشاريع (الإدارة العليا)', en: 'Head of IT & Projects (Executive Management)' },
-    signedAt: { ar: '2026-09-18 02:45 م', en: '2026-09-18 02:45 PM' },
-  },
-];
+import { formatNodes, useLanguage } from '../i18n';
+import { getDocuments, legalRef } from '../data/demo';
 
 interface ApprovedCertificateModalProps {
   isOpen: boolean;
@@ -44,7 +17,7 @@ export const ApprovedCertificateModal: React.FC<ApprovedCertificateModalProps> =
   onClose,
   onConfirmPublish,
   documentTitle: documentTitleProp,
-  documentNumber = '#DOC-2026-03',
+  documentNumber = '#BG-2026',
   department: departmentProp,
 }) => {
   const { lang, t } = useLanguage();
@@ -66,7 +39,15 @@ export const ApprovedCertificateModal: React.FC<ApprovedCertificateModalProps> =
     onClose();
   };
 
-  const approvedSigners = localize<ApprovedSigner[]>(localizedApprovedSigners, lang);
+  // Signers of the approved budget (BG-2026), read from the central demo data
+  const approvedSigners = (getDocuments(lang).find((d) => d.code === '#BG-2026')?.signatureSteps ?? [])
+    .filter((step) => step.status === 'signed')
+    .map((step) => ({
+      id: `s-${step.step}`,
+      name: step.officerName,
+      role: `${step.roleTitle} (${step.department})`,
+      signedAt: step.signedAt ?? '',
+    }));
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-sm animate-in fade-in">
@@ -119,7 +100,7 @@ export const ApprovedCertificateModal: React.FC<ApprovedCertificateModalProps> =
                 <span>{t('modals.certificate.readinessTitle')}</span>
               </div>
               <p className="text-xs text-emerald-900/80 leading-relaxed font-normal">
-                {t('modals.certificate.readinessBody')}
+                {t('modals.certificate.readinessBody', { reference: legalRef('digitalApprovalArt12', lang) })}
               </p>
             </div>
 

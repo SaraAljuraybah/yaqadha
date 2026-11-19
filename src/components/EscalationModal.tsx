@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { DocumentDossier } from '../types';
 import { useLanguage } from '../i18n';
+import { legalRef } from '../data/demo';
 
 interface EscalationModalProps {
   isOpen: boolean;
@@ -26,7 +27,7 @@ export const EscalationModal: React.FC<EscalationModalProps> = ({
   document,
   onConfirmEscalate,
 }) => {
-  const { t } = useLanguage();
+  const { lang, t } = useLanguage();
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [urgencyLevel, setUrgencyLevel] = useState<'high' | 'critical'>('critical');
   const [escalationTarget, setEscalationTarget] = useState({
@@ -101,7 +102,7 @@ export const EscalationModal: React.FC<EscalationModalProps> = ({
                     onChange={(e) => setEscalationTarget({ ...escalationTarget, nazaha: e.target.checked })}
                     className="rounded text-[#2C3E28] focus:ring-[#2C3E28] w-4 h-4"
                   />
-                  <span>{t('modals.escalation.targetNazaha')}</span>
+                  <span>{t('modals.escalation.targetNazaha', { reference: legalRef('antiCorruptionArt16', lang) })}</span>
                 </label>
 
                 <label className="flex items-center gap-2.5 p-2.5 rounded-xl border border-slate-200 bg-slate-50 text-xs font-medium cursor-pointer">
@@ -172,7 +173,7 @@ export const EscalationModal: React.FC<EscalationModalProps> = ({
                 {t('modals.escalation.successBody')}
               </p>
               <div className="font-mono text-xs font-bold bg-slate-100 text-slate-800 py-1.5 px-3 rounded-lg inline-block mt-2">
-                REF: NZH-2026-9082-CRIM-019
+                REF: NZH-2026-01-019
               </div>
             </div>
 

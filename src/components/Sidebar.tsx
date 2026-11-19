@@ -1,177 +1,128 @@
 import React from 'react';
-import { 
-  LayoutDashboard, 
-  SlidersHorizontal, 
-  ShieldCheck, 
-  ShieldAlert,
+import {
+  Home,
+  LayoutGrid,
+  SlidersHorizontal,
+  Stamp,
+  ShieldCheck,
   Gauge,
-  Lock,
-  CheckCircle2,
-  FileText
+  LucideIcon,
 } from 'lucide-react';
 import { ActiveScreen } from '../types';
-import { useLanguage } from '../i18n';
+import { TranslationKey, useLanguage } from '../i18n';
+import { DEMO_STATS } from '../data/demo';
 
 interface SidebarProps {
   activeScreen: ActiveScreen;
-  setActiveScreen: (screen: ActiveScreen) => void;
-  onNavigateToIndicators?: () => void;
-  blockedCount?: number;
-  reviewCount?: number;
-  totalDocsCount?: number;
+  onNavigate: (screen: ActiveScreen) => void;
 }
 
-export const Sidebar: React.FC<SidebarProps> = ({
-  activeScreen,
-  setActiveScreen,
-  onNavigateToIndicators,
-  blockedCount = 24,
-  reviewCount = 138,
-  totalDocsCount = 1482,
-}) => {
+type BadgeTone = 'neutral' | 'red' | 'amber';
+
+interface NavItem {
+  id: string;
+  screen: ActiveScreen;
+  /** Other screens that keep this item highlighted */
+  alsoActiveOn?: ActiveScreen[];
+  label: TranslationKey;
+  icon: LucideIcon;
+  badge?: { count: number; tone: BadgeTone; label: TranslationKey };
+}
+
+// Order and counts follow the target design; counts come from the central demo data
+const NAV_ITEMS: NavItem[] = [
+  { id: 'overview', screen: 'overview', label: 'sidebar.overview', icon: Home },
+  {
+    id: 'documents',
+    screen: 'executive_dashboard',
+    alsoActiveOn: ['file_dossier'],
+    label: 'sidebar.documents',
+    icon: LayoutGrid,
+    badge: { count: DEMO_STATS.totalDocuments, tone: 'neutral', label: 'sidebar.documentsBadgeLabel' },
+  },
+  {
+    id: 'indicators',
+    screen: 'indicators_hub',
+    alsoActiveOn: ['yellow_risk_inspection', 'red_risk_inspection'],
+    label: 'sidebar.indicators',
+    icon: SlidersHorizontal,
+    badge: { count: DEMO_STATS.suspendedAwaitingDecision, tone: 'red', label: 'sidebar.indicatorsBadgeLabel' },
+  },
+  {
+    id: 'approvals',
+    screen: 'approval_requests',
+    label: 'sidebar.approvals',
+    icon: Stamp,
+    badge: { count: DEMO_STATS.awaitingDecision, tone: 'amber', label: 'sidebar.approvalsBadgeLabel' },
+  },
+  { id: 'access', screen: 'access_management', label: 'sidebar.accessManagement', icon: ShieldCheck },
+  { id: 'tender-risk', screen: 'tender_risk_assessment', label: 'sidebar.tenderRisk', icon: Gauge },
+];
+
+const badgeStyles: Record<BadgeTone, string> = {
+  neutral: 'bg-slate-100 text-slate-600 border-slate-200',
+  red: 'bg-red-50 text-red-700 border-red-200',
+  amber: 'bg-amber-50 text-amber-800 border-amber-200',
+};
+
+const isNavItemActive = (item: NavItem, activeScreen: ActiveScreen) =>
+  item.screen === activeScreen || (item.alsoActiveOn?.includes(activeScreen) ?? false);
+
+export const Sidebar: React.FC<SidebarProps> = ({ activeScreen, onNavigate }) => {
   const { t } = useLanguage();
-  const isDocumentsActive = activeScreen === 'executive_dashboard';
-  const isIndicatorsActive = 
-    activeScreen === 'indicators_hub' || 
-    activeScreen === 'yellow_risk_inspection' || 
-    activeScreen === 'red_risk_inspection';
-  const isAccessActive = activeScreen === 'access_management';
-  const isTenderRiskActive = activeScreen === 'tender_risk_assessment';
 
   return (
-    <aside 
-      className="fixed top-0 start-0 h-screen w-64 lg:w-72 bg-white border-e border-slate-200 z-40 flex flex-col justify-between shadow-xs select-none"
+    <aside
+      className="fixed top-0 start-0 h-screen w-64 lg:w-72 bg-white border-e border-slate-200 z-40 flex flex-col select-none"
       aria-label={t('sidebar.ariaLabel')}
     >
-      {/* Top Branding & Main Navigation */}
-      <div className="flex flex-col">
-        {/* Brand Header - Clean logo and name only */}
-        <a href="/" className="h-18 flex items-center px-6 border-b border-slate-200/90 gap-2.5">
-          <div className="flex items-center justify-center shrink-0 -translate-y-0.5">
-            <img 
-              src="/yaqadha-logo.svg" 
-              data-brand-logo
-              alt={t('sidebar.logoAlt')} 
-              className="w-12 h-12 object-contain shrink-0 transition-transform duration-300 hover:scale-105 select-none"
-            />
-          </div>
-          <div className="flex items-center">
-            <span className="text-2xl font-black tracking-tight text-slate-900">{t('common.brand')}</span>
-          </div>
-        </a>
+      {/* Brand */}
+      <a href="/" className="h-20 flex items-center px-6 gap-2.5 shrink-0">
+        <img
+          src="/yaqadha-logo.svg"
+          data-brand-logo
+          alt={t('sidebar.logoAlt')}
+          className="w-11 h-11 object-contain shrink-0 transition-transform duration-300 hover:scale-105"
+        />
+        <span className="text-2xl font-black tracking-tight text-slate-900 dark:text-[#EFE6C8]">{t('common.brand')}</span>
+      </a>
 
-        {/* Navigation Items */}
-        <nav className="p-4 space-y-2" aria-label={t('sidebar.navAriaLabel')}>
-
-          {/* 1. سجل المستندات */}
-          <button
-            id="sidebar-nav-documents"
-            onClick={() => setActiveScreen('executive_dashboard')}
-            className={`w-full flex items-center justify-between px-4 py-3 rounded-2xl text-xs sm:text-sm transition-all text-start ${
-              isDocumentsActive
-                ? 'bg-[#2C3E28] text-white font-bold shadow-2xs'
-                : 'text-slate-700 font-medium hover:text-slate-900 hover:bg-slate-100'
-            }`}
-          >
-            <div className="flex items-center gap-3">
-              <LayoutDashboard 
-                className={`w-5 h-5 shrink-0 ${
-                  isDocumentsActive ? 'text-white' : 'text-slate-500'
-                }`} 
-              />
-              <span>{t('sidebar.documents')}</span>
-            </div>
-            <span 
-              className={`text-[11px] font-mono px-2 py-0.5 rounded-lg ${
-                isDocumentsActive 
-                  ? 'bg-white/20 text-white' 
-                  : 'bg-slate-100 text-slate-600'
+      {/* Navigation */}
+      <nav className="px-4 pb-4 space-y-1.5 overflow-y-auto" aria-label={t('sidebar.navAriaLabel')}>
+        {NAV_ITEMS.map((item) => {
+          const active = isNavItemActive(item, activeScreen);
+          const Icon = item.icon;
+          return (
+            <button
+              key={item.id}
+              id={`sidebar-nav-${item.id}`}
+              type="button"
+              onClick={() => onNavigate(item.screen)}
+              aria-current={active ? 'page' : undefined}
+              className={`w-full flex items-center justify-between gap-3 px-4 py-3 rounded-2xl text-sm transition-colors text-start ${
+                active
+                  ? 'bg-[#2C3E28] text-white font-bold shadow-2xs'
+                  : 'text-slate-700 font-medium hover:text-slate-900 hover:bg-slate-100'
               }`}
             >
-              {totalDocsCount}
-            </span>
-          </button>
-
-          {/* 2. مؤشرات المستندات */}
-          <button
-            id="sidebar-nav-indicators"
-            onClick={() => {
-              if (onNavigateToIndicators) {
-                onNavigateToIndicators();
-              } else {
-                setActiveScreen('indicators_hub');
-              }
-            }}
-            className={`w-full flex items-center justify-between px-4 py-3 rounded-2xl text-xs sm:text-sm transition-all text-start ${
-              isIndicatorsActive
-                ? 'bg-[#2C3E28] text-white font-bold shadow-2xs'
-                : 'text-slate-700 font-medium hover:text-slate-900 hover:bg-slate-100'
-            }`}
-          >
-            <div className="flex items-center gap-3">
-              <SlidersHorizontal 
-                className={`w-5 h-5 shrink-0 ${
-                  isIndicatorsActive ? 'text-white' : 'text-slate-500'
-                }`} 
-              />
-              <span>{t('sidebar.indicators')}</span>
-            </div>
-            {blockedCount > 0 && (
-              <span className="flex items-center gap-1 text-[11px] font-mono px-2 py-0.5 rounded-lg bg-red-100 text-red-700 font-bold border border-red-200">
-                <span className="w-1.5 h-1.5 rounded-full bg-red-600"></span>
-                <span>{blockedCount}</span>
+              <span className="flex items-center gap-3 min-w-0">
+                <Icon className={`w-[18px] h-[18px] shrink-0 ${active ? 'text-white' : 'text-slate-500'}`} />
+                <span className="leading-snug">{t(item.label)}</span>
               </span>
-            )}
-          </button>
-
-          {/* 3. إدارة الحسابات والصلاحيات */}
-          <button
-            id="sidebar-nav-access"
-            onClick={() => setActiveScreen('access_management')}
-            className={`w-full flex items-center justify-between px-4 py-3 rounded-2xl text-xs sm:text-sm transition-all text-start ${
-              isAccessActive
-                ? 'bg-[#2C3E28] text-white font-bold shadow-2xs'
-                : 'text-slate-700 font-medium hover:text-slate-900 hover:bg-slate-100'
-            }`}
-          >
-            <div className="flex items-center gap-3">
-              <ShieldCheck 
-                className={`w-5 h-5 shrink-0 ${
-                  isAccessActive ? 'text-white' : 'text-slate-500'
-                }`} 
-              />
-              <span>{t('sidebar.accessManagement')}</span>
-            </div>
-          </button>
-
-          {/* 4. تقييم مخاطر منافسة */}
-          <button
-            id="sidebar-nav-tender-risk"
-            onClick={() => setActiveScreen('tender_risk_assessment')}
-            className={`w-full flex items-center justify-between px-4 py-3 rounded-2xl text-xs sm:text-sm transition-all text-start ${
-              isTenderRiskActive
-                ? 'bg-[#2C3E28] text-white font-bold shadow-2xs'
-                : 'text-slate-700 font-medium hover:text-slate-900 hover:bg-slate-100'
-            }`}
-          >
-            <div className="flex items-center gap-3">
-              <Gauge
-                className={`w-5 h-5 shrink-0 ${
-                  isTenderRiskActive ? 'text-white' : 'text-slate-500'
-                }`}
-              />
-              <span>{t('sidebar.tenderRisk')}</span>
-            </div>
-          </button>
-        </nav>
-      </div>
-
-      {/* Simplified Footer */}
-      <div className="p-4 border-t border-slate-200/90 bg-slate-50/70 text-center">
-        <span className="text-xs font-medium text-slate-400 select-none">
-          {t('sidebar.footer')}
-        </span>
-      </div>
+              {item.badge && item.badge.count > 0 && (
+                <span
+                  className={`min-w-6 h-6 px-1.5 inline-flex items-center justify-center rounded-lg border text-[11px] font-bold font-mono shrink-0 ${
+                    active ? 'bg-white/20 text-white border-white/10' : badgeStyles[item.badge.tone]
+                  }`}
+                  aria-label={t(item.badge.label, { count: item.badge.count })}
+                >
+                  {item.badge.count}
+                </span>
+              )}
+            </button>
+          );
+        })}
+      </nav>
     </aside>
   );
 };

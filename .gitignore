@@ -6,3 +6,6 @@ coverage/
 *.log
 .env*
 !.env.example
+
+# Design reference (large binary, kept local only)
+docs/design/target-ui.pdf

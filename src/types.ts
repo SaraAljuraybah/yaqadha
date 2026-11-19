@@ -32,7 +32,7 @@ export interface GovernancePath {
   speedAnomaly: boolean; // هل يوجد تسريع غير منطقي أو تخطي لإجراءات الرقابة؟
   
   // قرار المنصة التلقائي للنشر
-  platformApprovalStatus: 'auto_approved' | 'routed_to_dept_head' | 'escalated_to_ceo_permanently_blocked';
+  platformApprovalStatus: 'auto_approved' | 'routed_to_dept_head' | 'precautionary_suspension';
   approvalDecisionText: string;
   assignedAuthority: string; // e.g. "معالي رئيس المنظومة (الرئيس التنفيذي)" أو "رئيس قسم المالية والميزانية"
   actionDetails: string[];
@@ -180,7 +180,9 @@ export interface RiskEvaluationResult {
   disclaimer: string;
 }
 
-export type ActiveScreen = 
+export type ActiveScreen =
+  | 'overview'
+  | 'approval_requests'
   | 'file_dossier' 
   | 'indicators_hub'
   | 'yellow_risk_inspection' 

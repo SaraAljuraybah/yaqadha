@@ -22,8 +22,9 @@ import {
   X, 
   ShieldX
 } from 'lucide-react';
-import { DocumentDossier, FlaggedEvidence, ViewerRecord } from '../types';
-import { formatNodes, Localizable, localize, useLanguage } from '../i18n';
+import { DocumentDossier, FlaggedEvidence } from '../types';
+import { formatNodes, useLanguage } from '../i18n';
+import { CASE_VIOLATIONS, legalRef } from '../data/demo';
 import { ReviewApprovalModal } from './ReviewApprovalModal';
 import { ApprovedCertificateModal } from './ApprovedCertificateModal';
 import { RiskAssessmentPanel } from './RiskAssessmentPanel';
@@ -41,27 +42,6 @@ interface UnifiedIndicatorsScreenProps {
   onExportForensicReport: () => void;
   isRedEscalated?: boolean;
 }
-
-const fallbackViewers: Localizable<ViewerRecord>[] = [
-  {
-    id: 'v-1',
-    name: { ar: 'سعد عبد الرحمن الخالدي', en: 'Saad Abdulrahman Al-Khalidi' },
-    role: { ar: 'أخصائي مطابقة فواتير', en: 'Invoice Reconciliation Specialist' },
-    department: { ar: 'قسم المالية والميزانية', en: 'Finance & Budget Section' },
-    viewedAt: { ar: '2026-09-21 01:10 م', en: '2026-09-21 01:10 PM' },
-    timeSpent: { ar: '12 دقيقة', en: '12 minutes' },
-    ip: '10.20.1.15'
-  },
-  {
-    id: 'v-2',
-    name: { ar: 'أمل مساعد المطيري', en: 'Amal Musaed Al-Mutairi' },
-    role: { ar: 'محاسب مدفوعات', en: 'Payments Accountant' },
-    department: { ar: 'قسم المالية والميزانية', en: 'Finance & Budget Section' },
-    viewedAt: { ar: '2026-09-21 02:25 م', en: '2026-09-21 02:25 PM' },
-    timeSpent: { ar: '8 دقائق', en: '8 minutes' },
-    ip: '10.20.1.22'
-  }
-];
 
 export const UnifiedIndicatorsScreen: React.FC<UnifiedIndicatorsScreenProps> = ({
   yellowDocument,
@@ -96,9 +76,7 @@ export const UnifiedIndicatorsScreen: React.FC<UnifiedIndicatorsScreenProps> = (
   const investigationMeetingNote = investigationMeetingNoteDraft ?? t('indicators.yellow.defaultNote');
   const [isYellowResolved, setIsYellowResolved] = useState(false);
 
-  const viewersAndSigners = yellowDocument.viewers.slice(0, 2).length === 2 
-    ? yellowDocument.viewers.slice(0, 2)
-    : localize<ViewerRecord[]>(fallbackViewers, lang);
+  const viewersAndSigners = yellowDocument.viewers;
 
   const [isReviewApprovalModalOpen, setIsReviewApprovalModalOpen] = useState(false);
   const [isApprovedModalOpen, setIsApprovedModalOpen] = useState(false);
@@ -117,13 +95,11 @@ export const UnifiedIndicatorsScreen: React.FC<UnifiedIndicatorsScreenProps> = (
 
   const redGov = redDocument.governance;
 
-  const singleInvolvedUser = {
-    violations: [
-      t('indicators.red.violation1'),
-      t('indicators.red.violation2'),
-      t('indicators.red.violation3')
-    ]
-  };
+  // Detected violations and their legal basis come from the central demo data
+  const caseViolations = CASE_VIOLATIONS.map((v) => ({
+    text: v.text[lang],
+    basis: t('indicators.red.legalBasis', { reference: legalRef(v.reference, lang) }),
+  }));
 
   return (
     <div id="unified-indicators-screen" className="space-y-8 pb-28 text-start">
@@ -642,14 +618,17 @@ export const UnifiedIndicatorsScreen: React.FC<UnifiedIndicatorsScreenProps> = (
                   {t('indicators.red.violationsTitle')}
                 </span>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5">
-                  {singleInvolvedUser.violations.map((v, i) => (
+                  {caseViolations.map((v, i) => (
                     <div key={i} className="p-3 rounded-xl bg-slate-50 border border-slate-200 text-start">
                       <div className="flex items-center gap-1.5 text-red-700 font-bold text-[11px]">
                         <span className="w-1.5 h-1.5 rounded-full bg-red-600 shrink-0"></span>
                         <span>{formatNodes(t('indicators.red.violationNumber'), { number: i + 1 })}</span>
                       </div>
-                      <p className="text-xs text-slate-600 mt-1 leading-relaxed font-normal">
-                        {v}
+                      <p className="text-xs text-slate-900 mt-1 leading-relaxed font-medium">
+                        {v.text}
+                      </p>
+                      <p className="text-[11px] text-slate-500 mt-1 leading-relaxed font-normal">
+                        {v.basis}
                       </p>
                     </div>
                   ))}
@@ -675,7 +654,7 @@ export const UnifiedIndicatorsScreen: React.FC<UnifiedIndicatorsScreenProps> = (
                 </div>
               </div>
               <span className="text-xs font-bold text-red-800 bg-red-50 px-2.5 py-1 rounded-lg border border-red-200">
-                {t('indicators.red.irreversibleBadge')}
+                {t('indicators.red.reversibleBadge')}
               </span>
             </div>
 
@@ -684,7 +663,7 @@ export const UnifiedIndicatorsScreen: React.FC<UnifiedIndicatorsScreenProps> = (
                 {t('indicators.red.forensicStatementTitle')}
               </div>
               <p className="text-xs text-slate-600 leading-relaxed font-normal">
-                {t('indicators.red.forensicStatementBody')}
+                {t('indicators.red.forensicStatementBody', { reference: legalRef('governanceArt43', lang) })}
               </p>
             </div>
           </section>
@@ -958,7 +937,7 @@ export const UnifiedIndicatorsScreen: React.FC<UnifiedIndicatorsScreenProps> = (
                 {t('indicators.approved.statementTitle')}
               </div>
               <p className="text-xs text-slate-600 leading-relaxed font-normal">
-                {t('indicators.approved.statementBody')}
+                {t('indicators.approved.statementBody', { reference: legalRef('digitalApprovalArt12', lang) })}
               </p>
             </div>
           </section>
@@ -1034,7 +1013,7 @@ export const UnifiedIndicatorsScreen: React.FC<UnifiedIndicatorsScreenProps> = (
           setIsApprovedPublished(true);
         }}
         documentTitle={approvedDoc?.title || t('indicators.approved.fallbackTitle')}
-        documentNumber={approvedDoc?.code || '#DOC-2026-03'}
+        documentNumber={approvedDoc?.code || '#BG-2026'}
         department={approvedDoc?.department || t('indicators.approved.fallbackDepartment')}
       />
 
