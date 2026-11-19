@@ -229,6 +229,7 @@ export const DEMO_STATS = {
 // 8. Documents registry — the 6 detailed rows shown out of the 60 documents
 // ----------------------------------------------------------------------------
 export type RegisterStatus = 'suspended' | 'under_review' | 'pending_approval' | 'approved';
+export type Severity = 'high' | 'medium' | 'low';
 
 export interface RegisterDocument {
   /** Code without the leading '#', e.g. "YQ-8841" */
@@ -239,6 +240,9 @@ export interface RegisterDocument {
   status: RegisterStatus;
   currentStage: number;
   totalStages: number;
+  /** Creation date (ISO, yyyy-mm-dd) — used by the date filter */
+  createdIso: string;
+  severity: Severity;
   /** Id of the detailed dossier (only some documents have one) */
   dossierId?: string;
 }
@@ -252,6 +256,8 @@ const localizedRegister: Localizable<RegisterDocument>[] = [
     status: 'suspended',
     currentStage: 2,
     totalStages: 4,
+    createdIso: '2026-11-08',
+    severity: 'high',
     dossierId: 'doc-1',
   },
   {
@@ -262,6 +268,8 @@ const localizedRegister: Localizable<RegisterDocument>[] = [
     status: 'under_review',
     currentStage: 3,
     totalStages: 4,
+    createdIso: '2026-11-02',
+    severity: 'medium',
     dossierId: 'doc-2',
   },
   {
@@ -272,6 +280,8 @@ const localizedRegister: Localizable<RegisterDocument>[] = [
     status: 'under_review',
     currentStage: 2,
     totalStages: 3,
+    createdIso: '2026-11-06',
+    severity: 'medium',
   },
   {
     code: 'CT-2207',
@@ -281,6 +291,8 @@ const localizedRegister: Localizable<RegisterDocument>[] = [
     status: 'pending_approval',
     currentStage: 4,
     totalStages: 4,
+    createdIso: '2026-10-20',
+    severity: 'low',
   },
   {
     code: 'BG-2026',
@@ -290,6 +302,8 @@ const localizedRegister: Localizable<RegisterDocument>[] = [
     status: 'approved',
     currentStage: 4,
     totalStages: 4,
+    createdIso: '2026-11-02',
+    severity: 'low',
     dossierId: 'doc-3',
   },
   {
@@ -300,11 +314,24 @@ const localizedRegister: Localizable<RegisterDocument>[] = [
     status: 'approved',
     currentStage: 4,
     totalStages: 4,
+    createdIso: '2026-09-08',
+    severity: 'low',
+    dossierId: 'doc-4',
   },
 ];
 
 export const getRegisterDocuments = (lang: Lang): RegisterDocument[] =>
   localize<RegisterDocument[]>(localizedRegister, lang);
+
+/** Compliance rate (% of documents approved without violation) per month, oldest first. Ends at the current 82%. */
+export const COMPLIANCE_TREND: { month: LocalizedText; value: number }[] = [
+  { month: { ar: 'يونيو', en: 'Jun' }, value: 74 },
+  { month: { ar: 'يوليو', en: 'Jul' }, value: 76 },
+  { month: { ar: 'أغسطس', en: 'Aug' }, value: 75 },
+  { month: { ar: 'سبتمبر', en: 'Sep' }, value: 78 },
+  { month: { ar: 'أكتوبر', en: 'Oct' }, value: 80 },
+  { month: { ar: 'نوفمبر', en: 'Nov' }, value: Math.round((49 / 60) * 100) },
+];
 
 // ----------------------------------------------------------------------------
 // 9. Notifications (bell menu) — 3 need a decision, 2 are for information
@@ -587,7 +614,7 @@ const localizedUsers: Localizable<UserAccount>[] = [
 export const getUsers = (lang: Lang): UserAccount[] => localize<UserAccount[]>(localizedUsers, lang);
 
 // ----------------------------------------------------------------------------
-// 14. Detailed document dossiers (DOC-2026-01, YQ-8841, BG-2026)
+// 14. Detailed document dossiers (DOC-2026-01, YQ-8841, BG-2026, CL-0915)
 // ----------------------------------------------------------------------------
 const ahmedRole = { ar: 'مدير إدارة تقنية المعلومات (المُعد)', en: 'Director of Information Technology (Preparer)' };
 const tariqRole = { ar: 'رئيس قسم المالية والميزانية', en: 'Head of Finance & Budget' };
@@ -595,6 +622,7 @@ const nouraRole = { ar: 'المستشار القانوني العام', en: 'Gen
 const abdullahRole = { ar: 'نائب الرئيس التنفيذي للتشغيل', en: 'Deputy CEO for Operations' };
 const reemRole = { ar: 'أخصائية العقود والمشتريات (المُعد)', en: 'Contracts & Procurement Specialist (Preparer)' };
 const salmanRole = { ar: 'نائب رئيس قسم المالية', en: 'Deputy Head of Finance' };
+const KHALID_ROLE = { ar: 'مدير عام تقنية المعلومات', en: 'General Manager of Information Technology' };
 
 const stageTitles = {
   preparer: { ar: 'المُعد', en: 'Preparer' },
@@ -1415,6 +1443,179 @@ const localizedDocuments: Localizable<DocumentDossier>[] = [
       document_count: 3,
       findings: [],
     },
+  },
+
+  // 4. CL-0915 — approved cloud services booklet (complete chain)
+  {
+    id: 'doc-4',
+    code: '#CL-0915',
+    title: { ar: 'كراسة خدمات الحوسبة السحابية', en: 'Cloud Computing Services Booklet' },
+    category: { ar: 'مناقصات ومشاريع تقنية', en: 'Technical Tenders & Projects' },
+    department: DEPARTMENTS.it,
+    responsibleDeptHead: join(PEOPLE.khalid.name, { ar: ' (مدير عام تقنية المعلومات)', en: ' (General Manager of Information Technology)' }),
+    budget: { ar: '6,200,000 ر.س', en: 'SAR 6,200,000' },
+    creationDate: '2026-09-08 09:30:00',
+    lastModified: { ar: '2026-09-15 01:20 م', en: '2026-09-15 01:20 PM' },
+    status: 'published',
+    riskLevel: 'safe',
+    riskScore: 6,
+    tags: [
+      { ar: 'اعتماد مكتمل - مطابق للحوكمة', en: 'Approval complete — governance compliant' },
+      { ar: 'تواقيع مكتملة بالتسلسل', en: 'Signatures completed in sequence' },
+    ],
+
+    governance: {
+      passCount: 12,
+      viewersCount: 4,
+      signaturesCount: 4,
+      requiredSignaturesCount: 4,
+      hasSeniorExecutiveSignature: true,
+      isSequenceCompliant: true,
+      speedAnomaly: false,
+      platformApprovalStatus: 'auto_approved',
+      approvalDecisionText: {
+        ar: 'منحت المنصة موافقة تلقائية على النشر لاكتمال سلسلة الاعتماد ومطابقة الحوكمة.',
+        en: 'The platform granted automatic publishing approval because the approval chain is complete and governance compliant.',
+      },
+      assignedAuthority: { ar: 'منظومة يقظة للتوثيق الرقمي المعتمد', en: 'Yaqadha Certified Digital Authentication System' },
+      actionDetails: [
+        {
+          ar: 'اكتمال كافة التواقيع المطلوبة بالتسلسل (الإعداد، المراجعة القانونية، المراجعة المالية، الاعتماد النهائي).',
+          en: 'All required signatures completed in sequence (preparation, legal review, financial review, final approval).',
+        },
+      ],
+    },
+
+    viewers: [
+      {
+        id: 'v-401',
+        name: PEOPLE.noura.name,
+        role: nouraRole,
+        department: DEPARTMENTS.legal,
+        viewedAt: { ar: '2026-09-10 10:00 ص', en: '2026-09-10 10:00 AM' },
+        timeSpent: { ar: 'ساعة و20 دقيقة', en: '1 hour 20 minutes' },
+        ip: '10.10.5.20',
+      },
+      {
+        id: 'v-402',
+        name: PEOPLE.tariq.name,
+        role: tariqRole,
+        department: DEPARTMENTS.finance,
+        viewedAt: { ar: '2026-09-13 09:40 ص', en: '2026-09-13 09:40 AM' },
+        timeSpent: { ar: 'ساعة و5 دقائق', en: '1 hour 5 minutes' },
+        ip: '10.10.2.14',
+      },
+      {
+        id: 'v-403',
+        name: PEOPLE.abdullah.name,
+        role: abdullahRole,
+        department: DEPARTMENTS.executive,
+        viewedAt: { ar: '2026-09-15 12:30 م', en: '2026-09-15 12:30 PM' },
+        timeSpent: { ar: '40 دقيقة', en: '40 minutes' },
+        ip: '10.10.1.2',
+      },
+    ],
+
+    signatureSteps: [
+      {
+        step: 1,
+        roleTitle: stageTitles.preparer,
+        officerName: PEOPLE.khalid.name,
+        department: DEPARTMENTS.it,
+        isSeniorExecutive: false,
+        status: 'signed',
+        signedAt: { ar: '2026-09-08 01:15 م', en: '2026-09-08 01:15 PM' },
+        orderCompliant: true,
+        notes: { ar: 'إعداد الكراسة الفنية', en: 'Technical booklet prepared' },
+      },
+      {
+        step: 2,
+        roleTitle: stageTitles.legal,
+        officerName: PEOPLE.noura.name,
+        department: DEPARTMENTS.legal,
+        isSeniorExecutive: true,
+        status: 'signed',
+        signedAt: { ar: '2026-09-10 11:20 ص', en: '2026-09-10 11:20 AM' },
+        orderCompliant: true,
+        notes: { ar: 'مطابقة نظامية', en: 'Regulatory compliance confirmed' },
+      },
+      {
+        step: 3,
+        roleTitle: stageTitles.finance,
+        officerName: PEOPLE.tariq.name,
+        department: DEPARTMENTS.finance,
+        isSeniorExecutive: true,
+        status: 'signed',
+        signedAt: { ar: '2026-09-13 10:45 ص', en: '2026-09-13 10:45 AM' },
+        orderCompliant: true,
+        notes: { ar: 'تأكيد توفر الميزانية', en: 'Budget availability confirmed' },
+      },
+      {
+        step: 4,
+        roleTitle: stageTitles.final,
+        officerName: PEOPLE.abdullah.name,
+        department: DEPARTMENTS.executive,
+        isSeniorExecutive: true,
+        status: 'signed',
+        signedAt: { ar: '2026-09-15 01:10 م', en: '2026-09-15 01:10 PM' },
+        orderCompliant: true,
+        notes: { ar: 'الاعتماد النهائي', en: 'Final approval' },
+      },
+    ],
+
+    metrics: { views: 21, downloads: 6, edits: 3, exportAttempts: 0 },
+
+    auditLogs: [
+      {
+        id: 'log-401',
+        user: PEOPLE.khalid.name,
+        role: KHALID_ROLE,
+        action: { ar: 'رفع الكراسة الفنية للمراجعة', en: 'Uploaded the technical booklet for review' },
+        timestamp: '2026-09-08 13:15:00',
+        ip: '10.10.1.5',
+        device: { ar: 'جهاز الإدارة المكتبي', en: 'Management office computer' },
+        hashVerified: true,
+      },
+      {
+        id: 'log-402',
+        user: PEOPLE.noura.name,
+        role: nouraRole,
+        action: { ar: 'توقيع المراجعة القانونية', en: 'Signed the legal review' },
+        timestamp: '2026-09-10 11:20:00',
+        ip: '10.10.5.20',
+        device: { ar: 'جهاز الإدارة القانونية', en: 'Legal Department computer' },
+        hashVerified: true,
+      },
+      {
+        id: 'log-403',
+        user: PEOPLE.tariq.name,
+        role: tariqRole,
+        action: { ar: 'توقيع المراجعة المالية', en: 'Signed the financial review' },
+        timestamp: '2026-09-13 10:45:00',
+        ip: '10.10.2.14',
+        device: { ar: 'جهاز الإدارة المالية', en: 'Finance office computer' },
+        hashVerified: true,
+      },
+      {
+        id: 'log-404',
+        user: PEOPLE.abdullah.name,
+        role: abdullahRole,
+        action: { ar: 'التوقيع والاعتماد النهائي', en: 'Final signature and approval' },
+        timestamp: '2026-09-15 13:10:00',
+        ip: '10.10.1.2',
+        device: { ar: 'الجهاز اللوحي القيادي المشفر', en: 'Encrypted executive tablet' },
+        hashVerified: true,
+      },
+    ],
+
+    signatures: [
+      { id: 'sig-401', name: PEOPLE.khalid.name, title: KHALID_ROLE, avatar: 'KS', department: DEPARTMENTS.it, status: 'approved', timestamp: { ar: '2026-09-08 01:15 م', en: '2026-09-08 01:15 PM' } },
+      { id: 'sig-402', name: PEOPLE.noura.name, title: nouraRole, avatar: 'NS', department: DEPARTMENTS.legal, status: 'approved', timestamp: { ar: '2026-09-10 11:20 ص', en: '2026-09-10 11:20 AM' } },
+      { id: 'sig-403', name: PEOPLE.tariq.name, title: tariqRole, avatar: 'TM', department: DEPARTMENTS.finance, status: 'approved', timestamp: { ar: '2026-09-13 10:45 ص', en: '2026-09-13 10:45 AM' } },
+      { id: 'sig-404', name: PEOPLE.abdullah.name, title: abdullahRole, avatar: 'AG', department: DEPARTMENTS.executive, status: 'approved', timestamp: { ar: '2026-09-15 01:10 م', en: '2026-09-15 01:10 PM' } },
+    ],
+
+    evidences: [],
   },
 ];
 

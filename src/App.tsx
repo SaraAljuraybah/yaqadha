@@ -38,7 +38,6 @@ export default function App() {
   const [activeScreen, setActiveScreen] = useState<ActiveScreen>('overview');
   const { lang, t } = useLanguage();
   const documents = useMemo<DocumentDossier[]>(() => getDocuments(lang), [lang]);
-  const [searchQuery, setSearchQuery] = useState('');
 
   // Detailed dossiers: doc-1 = DOC-2026-01 (suspended), doc-2 = YQ-8841 (review), doc-3 = BG-2026 (approved)
   const [selectedDocId, setSelectedDocId] = useState<string>('doc-1');
@@ -70,16 +69,6 @@ export default function App() {
   const redDocument = currentDocument.riskLevel === 'blocked'
     ? currentDocument
     : (documents.find(d => d.riskLevel === 'blocked') || documents[0]);
-
-  const handleSelectDocument = (doc: DocumentDossier, targetScreen: ActiveScreen = 'file_dossier') => {
-    setSelectedDocId(doc.id);
-    if (doc.riskLevel === 'review') {
-      setSelectedIndicatorTab('yellow');
-    } else if (doc.riskLevel === 'blocked') {
-      setSelectedIndicatorTab('red');
-    }
-    setActiveScreen(targetScreen);
-  };
 
   const navigate = useCallback((screen: ActiveScreen) => {
     if (screen === 'indicators_hub') {
@@ -167,13 +156,7 @@ export default function App() {
 
           {/* سجل المستندات */}
           {activeScreen === 'executive_dashboard' && (
-            <ExecutiveDashboardScreen
-              documents={documents}
-              onSelectDocument={handleSelectDocument}
-              onPublishSuccess={handlePublishSuccess}
-              searchQuery={searchQuery}
-              setSearchQuery={setSearchQuery}
-            />
+            <ExecutiveDashboardScreen onOpenDocument={openDocumentByCode} />
           )}
 
           {/* معاينة الوثيقة والأثر الرقمي */}
