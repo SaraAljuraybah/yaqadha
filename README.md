@@ -2,6 +2,17 @@
 
 Yaqadha is a React, Vite, TypeScript, Tailwind CSS, and Express platform for tender risk inspection, document governance, and proactive integrity review.
 
+## Pages
+
+The Vite build has two separate pages, each with its own CSS bundle:
+
+| URL | HTML entry | Source |
+| --- | --- | --- |
+| `/` | `index.html` | Landing page: `src/landing/` (assets in `public/landing/`) |
+| `/platform/` | `platform/index.html` | Yaqadha platform: `src/main.tsx` → `src/App.tsx` |
+
+The landing page buttons ("جرب يقظة الآن", and the demo form after submission) link to `/platform/`. The platform sidebar logo links back to `/`. Both pages share the `yaqadha_theme` localStorage key, so light/dark mode carries over.
+
 ## Architecture
 
 - Vercel serves the Vite build in `dist/` as static files.
@@ -23,7 +34,7 @@ Install dependencies:
 npm install
 ```
 
-Create `.env` locally. Do not commit it:
+Create `.env` locally (copy `.env.example`). Do not commit it:
 
 ```bash
 YAQADHA_API_BASE_URL=https://your-render-model-service.example.com
@@ -37,7 +48,7 @@ Run the development server:
 npm run dev
 ```
 
-Open <http://localhost:3000>.
+Open <http://localhost:3000> for the landing page and <http://localhost:3000/platform/> for the platform.
 
 Production-style local run:
 
@@ -74,7 +85,8 @@ The included Vercel configuration uses:
 - `outputDirectory`: `dist`
 - `framework`: `vite`
 - API rewrite: `/api/(.*)` to `/api`
-- SPA fallback rewrite: non-file paths to `/index.html`
+- Platform rewrite: `/platform` and `/platform/*` to `/platform/index.html`
+- SPA fallback rewrite: other non-file paths to `/index.html` (landing page)
 - API function `maxDuration`: `60`
 
 The risk proxy timeout is set just below the Vercel function limit, so cold starts from the Render free tier return a clean service-waking response instead of a platform timeout.

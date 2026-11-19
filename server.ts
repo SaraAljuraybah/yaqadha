@@ -15,6 +15,16 @@ async function startServer() {
 
   app.use(createApiApp());
 
+  // The platform page lives at /platform/ (landing page is at /)
+  app.use((req, res, next) => {
+    const [pathname, query] = req.originalUrl.split(/\?(.*)/s);
+    if (req.method === "GET" && pathname === "/platform") {
+      res.redirect(302, `/platform/${query ? `?${query}` : ""}`);
+      return;
+    }
+    next();
+  });
+
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({
       server: { middlewareMode: true },
@@ -24,6 +34,9 @@ async function startServer() {
   } else {
     const distPath = path.join(process.cwd(), "dist");
     app.use(express.static(distPath));
+    app.get("/platform/*", (_req, res) => {
+      res.sendFile(path.join(distPath, "platform", "index.html"));
+    });
     app.get("*", (_req, res) => {
       res.sendFile(path.join(distPath, "index.html"));
     });

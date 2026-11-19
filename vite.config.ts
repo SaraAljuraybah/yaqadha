@@ -9,6 +9,17 @@ const projectRoot = path.dirname(fileURLToPath(import.meta.url));
 export default defineConfig(() => {
   return {
     plugins: [react(), tailwindcss()],
+    build: {
+      rollupOptions: {
+        // Two separate pages, each with its own CSS:
+        //   /           -> landing page (index.html)
+        //   /platform/  -> Yaqadha platform (platform/index.html)
+        input: {
+          landing: path.resolve(projectRoot, 'index.html'),
+          platform: path.resolve(projectRoot, 'platform/index.html'),
+        },
+      },
+    },
     resolve: {
       alias: {
         '@': path.resolve(projectRoot, '.'),

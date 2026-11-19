@@ -46,7 +46,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       {/* Top Branding & Main Navigation */}
       <div className="flex flex-col">
         {/* Brand Header - Clean logo and name only */}
-        <div className="h-18 flex items-center px-6 border-b border-slate-200/90 gap-2.5">
+        <a href="/" className="h-18 flex items-center px-6 border-b border-slate-200/90 gap-2.5">
           <div className="flex items-center justify-center shrink-0 -translate-y-0.5">
             <img 
               src="/yaqadha-logo.svg" 
@@ -58,7 +58,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <div className="flex items-center">
             <span className="text-2xl font-black tracking-tight text-slate-900">{t('common.brand')}</span>
           </div>
-        </div>
+        </a>
 
         {/* Navigation Items */}
         <nav className="p-4 space-y-2" aria-label={t('sidebar.navAriaLabel')}>

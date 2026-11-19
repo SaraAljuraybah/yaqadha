@@ -13,6 +13,14 @@
       "destination": "/api"
     },
     {
+      "source": "/platform",
+      "destination": "/platform/index.html"
+    },
+    {
+      "source": "/platform/:path((?!.*\\.).*)",
+      "destination": "/platform/index.html"
+    },
+    {
       "source": "/((?!.*\\.).*)",
       "destination": "/index.html"
     }
