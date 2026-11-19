@@ -1,4 +1,5 @@
 import express from "express";
+import { handleTenderExtract, MAX_PDF_BYTES } from "./tenderExtract.js";
 
 interface AnalysisReport {
   summary: string;
@@ -230,6 +231,17 @@ All values must be written in English.`
     const result = await callRiskApi("/api/v1/health", { method: "GET" });
     res.status(result.status).json(result.body);
   });
+
+  // Specifications PDF → tender fields (Gemini). Raw PDF body, max 4 MB (below Vercel's 4.5 MB request limit).
+  app.post(
+    "/api/tender/extract",
+    express.raw({ type: "application/pdf", limit: MAX_PDF_BYTES }),
+    handleTenderExtract,
+    (err: any, _req: express.Request, res: express.Response, next: express.NextFunction) => {
+      if (err?.type === "entity.too.large") return res.status(413).json({ success: false, error: { code: "file_too_large" } });
+      return next(err);
+    }
+  );
 
   app.post("/api/risk/evaluate", async (req, res) => {
     const result = await callRiskApi("/api/v1/risk/evaluate", {

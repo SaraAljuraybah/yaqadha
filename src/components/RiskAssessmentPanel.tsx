@@ -7,6 +7,8 @@ import { RiskErrorState, RiskLoadingState, RiskResultCard } from './RiskResultCa
 
 interface RiskAssessmentPanelProps {
   document: DocumentDossier;
+  /** Context shown right below the score (e.g. the case page's governance note) */
+  belowScore?: (result: RiskEvaluationResult) => React.ReactNode;
 }
 
 type PanelState =
@@ -15,7 +17,7 @@ type PanelState =
   | { kind: 'success'; result: RiskEvaluationResult }
   | { kind: 'error'; code: RiskErrorCode };
 
-export const RiskAssessmentPanel: React.FC<RiskAssessmentPanelProps> = ({ document }) => {
+export const RiskAssessmentPanel: React.FC<RiskAssessmentPanelProps> = ({ document, belowScore }) => {
   const { t } = useLanguage();
   const input = document.riskInput;
   const [state, setState] = useState<PanelState>({ kind: 'idle' });
@@ -87,7 +89,7 @@ export const RiskAssessmentPanel: React.FC<RiskAssessmentPanelProps> = ({ docume
       )}
 
       {/* Results */}
-      {result && <RiskResultCard result={result} />}
+      {result && <RiskResultCard result={result} belowScore={belowScore} />}
     </section>
   );
 };

@@ -351,7 +351,25 @@ export const CaseScreen: React.FC<CaseScreenProps> = ({
 
       {/* AI risk assessment (kept at the bottom of the case page) */}
       <div className="print:hidden">
-        <RiskAssessmentPanel document={document} />
+        <RiskAssessmentPanel
+          document={document}
+          belowScore={(result) =>
+            // A non-red model score sits next to a confirmed violation: say clearly which one drove the suspension
+            result.risk_score !== null && result.risk_color && result.risk_color !== 'Red' ? (
+              <div id="case-governance-override" className="rounded-2xl border border-red-200 bg-red-50/60 p-4 flex items-start gap-3" role="note">
+                <AlertTriangle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
+                <p className="text-sm text-slate-800 leading-relaxed">
+                  <span className="font-bold text-red-700" dir="ltr">Critical Override: </span>
+                  {t('casePage.overrideNote', {
+                    score: result.risk_score,
+                    color: t(result.risk_color === 'Yellow' ? 'casePage.colorYellow' : 'casePage.colorGreen'),
+                    violation: CASE_VIOLATIONS[0].text[lang],
+                  })}
+                </p>
+              </div>
+            ) : null
+          }
+        />
       </div>
     </div>
   );

@@ -46,12 +46,13 @@ const SectionHeader: React.FC<{ icon: LucideIcon; tone: string; title: string; s
 
 // ---- approval stages ----------------------------------------------------------
 
-type ChainState = 'done' | 'current' | 'returned' | 'pending';
+type ChainState = 'done' | 'current' | 'returned' | 'returnedFinance' | 'pending';
 
 const chainVisual: Record<ChainState, { icon: LucideIcon; ring: string; text: string; label: TranslationKey }> = {
   done: { icon: Check, ring: 'border-emerald-500 text-emerald-600 bg-emerald-50', text: 'text-emerald-700', label: 'approvals.stageDone' },
   current: { icon: Clock, ring: 'border-amber-500 text-amber-600 bg-amber-50', text: 'text-amber-700', label: 'approvals.stageCurrent' },
   returned: { icon: Clock, ring: 'border-amber-500 text-amber-600 bg-amber-50', text: 'text-amber-700', label: 'approvals.stageReturned' },
+  returnedFinance: { icon: Clock, ring: 'border-amber-500 text-amber-600 bg-amber-50', text: 'text-amber-700', label: 'approvals.stageReturnedFinance' },
   pending: { icon: Lock, ring: 'border-slate-300 text-slate-400 bg-slate-50', text: 'text-slate-500', label: 'approvals.stagePending' },
 };
 
@@ -59,6 +60,7 @@ const connectorTone: Record<ChainState, string> = {
   done: 'bg-emerald-500',
   current: 'bg-amber-500',
   returned: 'bg-amber-500',
+  returnedFinance: 'bg-amber-500',
   pending: 'bg-slate-200',
 };
 
@@ -177,10 +179,14 @@ export const ApprovalRequestsScreen: React.FC<ApprovalRequestsScreenProps> = ({ 
   const urgent = decisions.urgent;
   const exception = decisions.exception;
 
-  // Stage states: a rejection returns the request to the preparer. An approval keeps the financial stage
-  // current, because the delegation overrun still requires a signature within the authority's limit.
+  // Stage states: a rejection returns the request to the preparer. An approval returns it to the financial stage
+  // for a new signature from the original authority holder, because the delegated signature exceeded the limit.
   const chainStates: ChainState[] =
-    urgent === 'rejected' ? ['returned', 'pending', 'pending', 'pending'] : ['done', 'done', 'current', 'pending'];
+    urgent === 'rejected'
+      ? ['returned', 'pending', 'pending', 'pending']
+      : urgent === 'approved'
+      ? ['done', 'done', 'returnedFinance', 'pending']
+      : ['done', 'done', 'current', 'pending'];
 
   // Delegation overrun: contract value vs the delegated limit (both from the central data)
   const delegation = delegations.find((d) => d.id === URGENT_APPROVAL.delegationId) ?? INITIAL_DELEGATIONS[0];
@@ -200,7 +206,8 @@ export const ApprovalRequestsScreen: React.FC<ApprovalRequestsScreenProps> = ({ 
   // A human decision is recorded alongside the evidence and never erases it: the failed reading-time check keeps
   // its state and colour, gets an "accepted as exception" label, and is not counted toward readiness.
   const checks: (Omit<ReadinessCheck, 'state'> & { state: CheckState; acceptedException?: boolean; evidence?: string })[] = baseChecks.map((check) => {
-    if (check.id === 'delegation_limit') return { ...check, detail: limitDetail, evidence: limitEvidence };
+    if (check.id === 'delegation_limit')
+      return { ...check, detail: urgent === 'approved' ? `${limitDetail} · ${t('approvals.stageReturnedFinance')}` : limitDetail, evidence: limitEvidence };
     if (urgent === 'approved' && check.id === 'reading_time') return { ...check, acceptedException: true };
     if (urgent === 'approved' && check.id === 'manager') return { ...check, state: 'done', detail: t('approvals.managerApproved') };
     if (urgent === 'rejected' && check.id === 'manager') return { ...check, state: 'rejected', detail: t('approvals.managerRejected') };
@@ -214,6 +221,8 @@ export const ApprovalRequestsScreen: React.FC<ApprovalRequestsScreenProps> = ({ 
   const statusBadge =
     urgent === 'rejected'
       ? { label: t('approvals.returnedBadge'), cls: 'bg-red-50 text-red-700 border-red-200', dot: 'bg-red-500' }
+      : urgent === 'approved'
+      ? { label: t('approvals.returnedFinanceBadge'), cls: 'bg-amber-50 text-amber-800 border-amber-200', dot: 'bg-amber-500' }
       : { label: t('common.underReview'), cls: 'bg-amber-50 text-amber-800 border-amber-200', dot: 'bg-amber-500' };
 
   const readinessHeadline =
@@ -280,7 +289,10 @@ export const ApprovalRequestsScreen: React.FC<ApprovalRequestsScreenProps> = ({ 
                 <Icon className="w-5 h-5" />
               </span>
               <span className="mt-3 text-sm font-bold text-slate-900">{step.roleTitle}</span>
-              <span className="mt-1 text-xs text-slate-500 max-w-[14rem]">{step.officerName}</span>
+              <span className="mt-1 text-xs text-slate-500 max-w-[14rem]">
+                {/* A new financial signature must come from the original authority holder, not the delegate */}
+                {state === 'returnedFinance' ? PEOPLE.tariq.name[lang] : step.officerName}
+              </span>
               <span className={`mt-1 text-[11px] font-bold ${v.text}`}>{t(v.label)}</span>
             </li>
           );
@@ -401,7 +413,7 @@ export const ApprovalRequestsScreen: React.FC<ApprovalRequestsScreenProps> = ({ 
           {urgent ? (
             <DecisionOutcome
               tone={urgent === 'approved' ? 'amber' : 'red'}
-              title={t(urgent === 'approved' ? 'approvals.urgentApprovedBlocked' : 'approvals.urgentRejectedOutcome')}
+              title={urgent === 'approved' ? t('approvals.urgentApprovedReturned', { name: PEOPLE.tariq.name[lang] }) : t('approvals.urgentRejectedOutcome')}
               comment={requestComments.urgent}
               commentLabel={t('approvals.yourComment')}
             />

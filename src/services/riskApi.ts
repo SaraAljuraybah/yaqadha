@@ -22,7 +22,7 @@ const codeFromStatus = (status: number): RiskErrorCode => {
 };
 
 /**
- * Evaluates a record through the platform server (/api/risk/evaluate). Used by both the Indicators panel and
+ * Evaluates a record through the platform server (/api/risk/evaluate). Used by both the case page panel and
  * the Tender Risk Assessment page, so request building and response handling are identical for both.
  * The browser never calls the model API directly.
  */
@@ -40,7 +40,8 @@ export async function evaluateRisk(input: RiskEvaluationInput): Promise<RiskEval
   }
 
   const payload = await response.json().catch(() => null);
-  if (response.ok && payload && typeof payload.risk_score === 'number') {
+  // A valid assessment always has a status; risk_score is null when the model reports insufficient data
+  if (response.ok && payload && typeof payload.assessment_status === 'string') {
     return payload as RiskEvaluationResult;
   }
   const code = payload?.error?.code;

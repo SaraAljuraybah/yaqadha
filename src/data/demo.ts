@@ -1132,31 +1132,18 @@ const localizedDocuments: Localizable<DocumentDossier>[] = [
         en: 'Keep the precautionary suspension and request a statement from the preparer, then make a human decision to lift the suspension or approve escalation to the Oversight & Anti-Corruption Authority.',
       },
     },
-    // Single unauthorized signature: the preparer approved his own booklet alone
+    // Risk model v1.1 input. Value matches the dossier budget (SAR 14,500,000)
     riskInput: {
       record_id: 'DOC-2026-01',
-      tender_value_amount: 3500000,
-      tender_value_currency: 'SAR',
-      lot_count: 1,
-      bid_count: 2,
-      tenderer_count: 2,
-      award_count: 1,
-      supplier_count: 1,
-      document_count: 5,
-      findings: [
-        {
-          rule_id: 'DOC_001',
-          status: 'observed',
-          manifestation: 'Document approved with a single unauthorized signature, bypassing mandatory approvals',
-          evidence_references: ['DOC-2026-01'],
-        },
-        {
-          rule_id: 'COI_001',
-          status: 'weak_signal',
-          manifestation: "Preparer approved his own department's specification",
-          evidence_references: ['DOC-2026-01'],
-        },
-      ],
+      item_category: 'Information Technology',
+      tender_value_sar: 14500000,
+      items_count: 6,
+      bids_count: 2,
+      competitors_count: 2,
+      prior_awards_count: 3,
+      winning_suppliers_count: 1,
+      documents_count: 4,
+      submission_period_days: 7,
     },
   },
 
@@ -1413,25 +1400,18 @@ const localizedDocuments: Localizable<DocumentDossier>[] = [
         en: 'Review the reason for the urgent approval with the delegate before approving the path to continue.',
       },
     },
-    // Under review: rushed delegated finance signature
+    // Risk model v1.1 input. Value matches the contract (SAR 1,240,000)
     riskInput: {
       record_id: 'YQ-8841',
-      tender_value_amount: 900000,
-      tender_value_currency: 'SAR',
-      lot_count: 1,
-      bid_count: 2,
-      tenderer_count: 2,
-      award_count: 1,
-      supplier_count: 1,
-      document_count: 3,
-      findings: [
-        {
-          rule_id: 'PROC_001',
-          status: 'weak_signal',
-          manifestation: 'Finance-stage signature on 38 pages within 12 seconds (delegated)',
-          evidence_references: ['YQ-8841'],
-        },
-      ],
+      item_category: 'Information Technology',
+      tender_value_sar: 1240000,
+      items_count: 4,
+      bids_count: 3,
+      competitors_count: 3,
+      prior_awards_count: 1,
+      winning_suppliers_count: 1,
+      documents_count: 5,
+      submission_period_days: 21,
     },
   },
 
@@ -1681,19 +1661,6 @@ const localizedDocuments: Localizable<DocumentDossier>[] = [
         ar: 'تم النشر التلقائي واعتماد الوثيقة في السجل الرسمي للمنظومة.',
         en: 'The document was automatically published and approved in the platform’s official registry.',
       },
-    },
-    // Approved: complete, governance-compliant signature path — no findings
-    riskInput: {
-      record_id: 'BG-2026',
-      tender_value_amount: 1500000,
-      tender_value_currency: 'SAR',
-      lot_count: 1,
-      bid_count: 2,
-      tenderer_count: 2,
-      award_count: 1,
-      supplier_count: 1,
-      document_count: 3,
-      findings: [],
     },
   },
 

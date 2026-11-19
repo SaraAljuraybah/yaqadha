@@ -1,75 +1,58 @@
-import type { RiskEvaluationInput, RiskFindingStatus, RiskRuleId } from '../types';
+import type { RiskEvaluationInput } from '../types';
+import { ITEM_CATEGORY_VALUES } from '../shared/itemCategories';
 
-// ---- Contract vocabularies (must match the risk model API exactly) ----
-
-export const RULE_IDS: RiskRuleId[] = ['PROC_001', 'DOC_001', 'FIN_001', 'COI_001', 'CYB_001', 'CAP_001'];
-export const FINDING_STATUSES: RiskFindingStatus[] = ['none', 'weak_signal', 'observed', 'corroborated', 'confirmed'];
-export const CURRENCIES = ['SAR', 'EUR', 'USD'] as const;
+// ---- Fields of the risk model v1.1 request (order = form order) ----
 
 export const COUNT_FIELDS = [
-  'lot_count',
-  'bid_count',
-  'tenderer_count',
-  'award_count',
-  'supplier_count',
-  'document_count',
+  'items_count',
+  'bids_count',
+  'competitors_count',
+  'prior_awards_count',
+  'winning_suppliers_count',
+  'documents_count',
+  'submission_period_days',
 ] as const;
 
 export type CountField = (typeof COUNT_FIELDS)[number];
-export type ScalarField = 'record_id' | 'tender_value_amount' | 'tender_value_currency' | CountField;
-export const SCALAR_FIELDS: ScalarField[] = ['record_id', 'tender_value_amount', 'tender_value_currency', ...COUNT_FIELDS];
+export type TenderField = 'record_id' | 'item_category' | 'tender_value_sar' | CountField;
+export const TENDER_FIELDS: TenderField[] = ['record_id', 'item_category', 'tender_value_sar', ...COUNT_FIELDS];
 
-// ---- Form state: raw strings, so imported invalid values stay visible and editable ----
+// ---- Form state: raw strings, so imported or extracted invalid values stay visible and editable ----
 
-export interface FindingDraft {
-  key: string; // React key only — never sent to the API
-  rule_id: string;
-  status: string;
-  manifestation: string;
-  evidence_references: string[];
+export type TenderFormState = Record<TenderField, string>;
+
+/** Where an extracted value came from in the uploaded file. */
+export interface ExtractedField {
+  value: string;
+  /** Short quote from the document the value was read from */
+  source: string;
 }
 
-export type TenderFormState = Record<ScalarField, string> & { findings: FindingDraft[] };
-
-/** A record coming from any import source (CSV, Excel, Google Sheets — and later PDF/Word). */
+/** A record coming from any import source (CSV or an uploaded specifications PDF). */
 export interface ImportedTenderRecord {
-  fields: Partial<Record<ScalarField, string>>;
-  findings: Omit<FindingDraft, 'key'>[];
+  fields: Partial<Record<TenderField, string>>;
 }
-
-let findingKeySeq = 0;
-const nextFindingKey = () => `finding-${++findingKeySeq}`;
-
-export const emptyFinding = (): FindingDraft => ({
-  key: nextFindingKey(),
-  rule_id: '',
-  status: '',
-  manifestation: '',
-  evidence_references: [],
-});
 
 export const emptyForm = (): TenderFormState => ({
   record_id: '',
-  tender_value_amount: '',
-  tender_value_currency: 'SAR',
-  lot_count: '',
-  bid_count: '',
-  tenderer_count: '',
-  award_count: '',
-  supplier_count: '',
-  document_count: '',
-  findings: [],
+  item_category: '',
+  tender_value_sar: '',
+  items_count: '',
+  bids_count: '',
+  competitors_count: '',
+  prior_awards_count: '',
+  winning_suppliers_count: '',
+  documents_count: '',
+  submission_period_days: '',
 });
 
 /** Converts an imported record into form state (values are kept as-is so validation can flag them). */
 export const recordToFormState = (record: ImportedTenderRecord): TenderFormState => {
   const form = emptyForm();
-  for (const field of SCALAR_FIELDS) {
+  for (const field of TENDER_FIELDS) {
     const value = record.fields[field];
     if (value !== undefined) form[field] = value;
   }
-  if (form.tender_value_currency) form.tender_value_currency = form.tender_value_currency.trim().toUpperCase();
-  form.findings = record.findings.map((finding) => ({ ...finding, key: nextFindingKey() }));
   return form;
 };
 
@@ -81,7 +64,7 @@ const ARABIC_DIGITS = /[٠-٩۰-۹]/g;
 export const normalizeNumberText = (value: string): string =>
   value
     .replace(ARABIC_DIGITS, (d) => String((d.charCodeAt(0) & 0xf) % 10))
-    .replace(/[,\s٬ ]/g, '')
+    .replace(/[,\s٬ ]/g, '')
     .replace(/٫/g, '.')
     .trim();
 
@@ -92,97 +75,82 @@ const parseNumber = (value: string): number | null => {
   return Number.isFinite(n) ? n : null;
 };
 
-// ---- Validation (mirrors the API contract) ----
+// ---- Validation (mirrors the API contract; the category is required because without it there is no score) ----
 
-export type ValidationError =
-  | 'required'
-  | 'amount_positive'
-  | 'whole_number'
-  | 'currency'
-  | 'rule_required'
-  | 'status_required'
-  | 'manifestation_required';
+export type ValidationError = 'required' | 'amount_positive' | 'whole_number' | 'category';
 
-export interface FormErrors {
-  fields: Partial<Record<ScalarField, ValidationError>>;
-  findings: Record<string, Partial<Record<'rule_id' | 'status' | 'manifestation', ValidationError>>>;
-}
+export type FormErrors = Partial<Record<TenderField, ValidationError>>;
 
 export const validateForm = (form: TenderFormState): FormErrors => {
-  const errors: FormErrors = { fields: {}, findings: {} };
+  const errors: FormErrors = {};
 
-  if (!form.record_id.trim()) errors.fields.record_id = 'required';
+  if (!form.record_id.trim()) errors.record_id = 'required';
 
-  if (!form.tender_value_amount.trim()) errors.fields.tender_value_amount = 'required';
+  if (!form.item_category) errors.item_category = 'required';
+  else if (!ITEM_CATEGORY_VALUES.includes(form.item_category)) errors.item_category = 'category';
+
+  if (!form.tender_value_sar.trim()) errors.tender_value_sar = 'required';
   else {
-    const amount = parseNumber(form.tender_value_amount);
-    if (amount === null || amount <= 0) errors.fields.tender_value_amount = 'amount_positive';
+    const amount = parseNumber(form.tender_value_sar);
+    if (amount === null || amount <= 0) errors.tender_value_sar = 'amount_positive';
   }
-
-  if (!form.tender_value_currency.trim()) errors.fields.tender_value_currency = 'required';
-  else if (!(CURRENCIES as readonly string[]).includes(form.tender_value_currency)) errors.fields.tender_value_currency = 'currency';
 
   for (const field of COUNT_FIELDS) {
     if (!form[field].trim()) {
-      errors.fields[field] = 'required';
+      errors[field] = 'required';
       continue;
     }
     const count = parseNumber(form[field]);
-    if (count === null || !Number.isInteger(count) || count < 0) errors.fields[field] = 'whole_number';
-  }
-
-  for (const finding of form.findings) {
-    const findingErrors: FormErrors['findings'][string] = {};
-    if (!RULE_IDS.includes(finding.rule_id as RiskRuleId)) findingErrors.rule_id = 'rule_required';
-    if (!FINDING_STATUSES.includes(finding.status as RiskFindingStatus)) findingErrors.status = 'status_required';
-    if (finding.rule_id && !finding.manifestation.trim()) findingErrors.manifestation = 'manifestation_required';
-    if (Object.keys(findingErrors).length) errors.findings[finding.key] = findingErrors;
+    if (count === null || !Number.isInteger(count) || count < 0) errors[field] = 'whole_number';
   }
 
   return errors;
 };
 
-export const hasErrors = (errors: FormErrors): boolean =>
-  Object.keys(errors.fields).length > 0 || Object.keys(errors.findings).length > 0;
+export const hasErrors = (errors: FormErrors): boolean => Object.keys(errors).length > 0;
 
 /**
- * The single exact-contract request builder used by every caller (Tender Risk Assessment form and
- * the Indicators demo documents). Copies only the contract fields, so nothing extra can reach the API
- * (it rejects unknown fields with 422).
+ * The single exact-contract request builder used by every caller (Tender Risk Assessment form and the
+ * case page's demo document). Copies only the contract fields, so nothing extra can reach the API.
  */
 export const buildRiskRequest = (input: RiskEvaluationInput): RiskEvaluationInput => ({
   record_id: input.record_id,
-  tender_value_amount: input.tender_value_amount,
-  tender_value_currency: input.tender_value_currency,
-  lot_count: input.lot_count,
-  bid_count: input.bid_count,
-  tenderer_count: input.tenderer_count,
-  award_count: input.award_count,
-  supplier_count: input.supplier_count,
-  document_count: input.document_count,
-  findings: input.findings.map((finding) => ({
-    rule_id: finding.rule_id,
-    status: finding.status,
-    manifestation: finding.manifestation,
-    evidence_references: [...finding.evidence_references],
-  })),
+  item_category: input.item_category,
+  tender_value_sar: input.tender_value_sar,
+  items_count: input.items_count,
+  bids_count: input.bids_count,
+  competitors_count: input.competitors_count,
+  prior_awards_count: input.prior_awards_count,
+  winning_suppliers_count: input.winning_suppliers_count,
+  documents_count: input.documents_count,
+  submission_period_days: input.submission_period_days,
 });
 
 /** Converts a valid form into the exact API contract. Call only on a valid form. */
-export const toRiskInput = (form: TenderFormState): RiskEvaluationInput => buildRiskRequest({
-  record_id: form.record_id.trim(),
-  tender_value_amount: parseNumber(form.tender_value_amount) as number,
-  tender_value_currency: form.tender_value_currency,
-  lot_count: parseNumber(form.lot_count) as number,
-  bid_count: parseNumber(form.bid_count) as number,
-  tenderer_count: parseNumber(form.tenderer_count) as number,
-  award_count: parseNumber(form.award_count) as number,
-  supplier_count: parseNumber(form.supplier_count) as number,
-  document_count: parseNumber(form.document_count) as number,
-  findings: form.findings.map((finding) => ({
-    rule_id: finding.rule_id as RiskRuleId,
-    status: finding.status as RiskFindingStatus,
-    manifestation: finding.manifestation.trim(),
-    evidence_references: finding.evidence_references.map((ref) => ref.trim()).filter(Boolean),
-  })),
-});
+export const toRiskInput = (form: TenderFormState): RiskEvaluationInput =>
+  buildRiskRequest({
+    record_id: form.record_id.trim(),
+    item_category: form.item_category,
+    tender_value_sar: parseNumber(form.tender_value_sar) as number,
+    items_count: parseNumber(form.items_count) as number,
+    bids_count: parseNumber(form.bids_count) as number,
+    competitors_count: parseNumber(form.competitors_count) as number,
+    prior_awards_count: parseNumber(form.prior_awards_count) as number,
+    winning_suppliers_count: parseNumber(form.winning_suppliers_count) as number,
+    documents_count: parseNumber(form.documents_count) as number,
+    submission_period_days: parseNumber(form.submission_period_days) as number,
+  });
+
+/** Example values from the target design (tender TND-2026-118). */
+export const EXAMPLE_FORM: TenderFormState = {
+  record_id: 'TND-2026-118',
+  item_category: ITEM_CATEGORY_VALUES[0] ?? '',
+  tender_value_sar: '4800000',
+  items_count: '3',
+  bids_count: '1',
+  competitors_count: '1',
+  prior_awards_count: '4',
+  winning_suppliers_count: '1',
+  documents_count: '2',
+  submission_period_days: '5',
+};
