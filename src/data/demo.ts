@@ -145,7 +145,7 @@ export interface PendingDecision {
 const localizedPendingDecisions: Localizable<PendingDecision>[] = [
   // Routed yesterday 02:35 PM, right after the delegated 12-second signature
   { code: 'YQ-8841', kind: 'urgent_approval', person: FINANCE_STAGE_DELEGATED, receivedAt: '2026-11-07T14:35:12' },
-  { code: 'PO-3310', kind: 'exception_request', person: PEOPLE.salman.name, receivedAt: '2026-11-08T08:05:00' },
+  { code: 'PO-3310', kind: 'exception_request', person: PEOPLE.khalid.name, receivedAt: '2026-11-08T08:05:00' },
   { code: 'DOC-2026-01', kind: 'suspension', person: PEOPLE.ahmed.name, receivedAt: '2026-11-08T05:42:19' },
 ];
 
@@ -491,19 +491,94 @@ export const CASE_VIOLATIONS: { text: LocalizedText; reference: LegalReferenceId
 ];
 
 // ----------------------------------------------------------------------------
-// 12. Temporary delegation (Tariq on leave → Salman)
+// 12. Temporary delegations (Tariq on leave → Salman) and the permissions that can be delegated
 // ----------------------------------------------------------------------------
-export const DELEGATION = {
-  from: PEOPLE.tariq.name,
-  to: PEOPLE.salman.name,
-  fromNote: { ar: 'المفوِّض · في إجازة', en: 'Delegator · On leave' },
-  toNote: { ar: 'المفوَّض إليه', en: 'Delegate' },
-  scope: { ar: 'اعتماد الميزانيات والصرف حتى 500 ألف ريال', en: 'Budget and disbursement approval up to SAR 500,000' },
-  startIso: '2026-11-07',
-  endIso: '2026-11-15',
-  periodLabel: { ar: '7 – 15 نوفمبر 2026', en: '7 – 15 November 2026' },
-  daysLeft: 7,
+export interface DelegablePermission {
+  id: string;
+  /** Full scope, e.g. "Budget and disbursement approval up to SAR 500,000" */
+  scope: LocalizedText;
+  /** Short label used on the delegate's access-level pill, e.g. "Budget approval" */
+  short: LocalizedText;
+}
+
+export const DELEGABLE_PERMISSIONS: DelegablePermission[] = [
+  {
+    id: 'budget_500k',
+    scope: { ar: 'اعتماد الميزانيات والصرف حتى 500 ألف ريال', en: 'Budget and disbursement approval up to SAR 500,000' },
+    short: { ar: 'اعتماد الميزانيات', en: 'Budget approval' },
+  },
+  {
+    id: 'legal_review',
+    scope: { ar: 'المطابقة النظامية وفحص العقود', en: 'Regulatory compliance and contract review' },
+    short: { ar: 'مطابقة نظامية', en: 'Regulatory compliance' },
+  },
+  {
+    id: 'final_approval',
+    scope: { ar: 'الاعتماد النهائي وإذن النشر', en: 'Final approval and publishing authorization' },
+    short: { ar: 'اعتماد نهائي', en: 'Final approval' },
+  },
+  {
+    id: 'technical_endorsement',
+    scope: { ar: 'تأييد الاحتياج التقني', en: 'Endorsement of technical needs' },
+    short: { ar: 'تأييد تقني', en: 'Technical endorsement' },
+  },
+];
+
+export interface Delegation {
+  id: string;
+  fromUserId: string;
+  toUserId: string;
+  permissionId: string;
+  startIso: string;
+  endIso: string;
+  /** Why the delegator delegated (shown under their name) */
+  reason?: LocalizedText;
+}
+
+/** Delegations at the start of the demo. */
+export const INITIAL_DELEGATIONS: Delegation[] = [
+  {
+    id: 'del-1',
+    fromUserId: 'u-3', // Dr. Tariq Al-Mansour
+    toUserId: 'u-8', // Mr. Salman Al-Otaibi
+    permissionId: 'budget_500k',
+    startIso: '2026-11-07',
+    endIso: '2026-11-15',
+    reason: { ar: 'في إجازة', en: 'On leave' },
+  },
+];
+
+const MONTHS: Record<Lang, string[]> = {
+  ar: ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'],
+  en: ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'],
 };
+
+const parseIso = (iso: string) => {
+  const [y, m, d] = iso.split('-').map(Number);
+  return { y, m, d };
+};
+
+/** "15 نوفمبر" / "15 November" */
+export const formatDayMonth = (iso: string, lang: Lang): string => {
+  const { m, d } = parseIso(iso);
+  return `${d} ${MONTHS[lang][m - 1]}`;
+};
+
+/** "7 – 15 نوفمبر 2026", or full dates when the months differ. */
+export const formatDateRange = (startIso: string, endIso: string, lang: Lang): string => {
+  const a = parseIso(startIso);
+  const b = parseIso(endIso);
+  if (a.y === b.y && a.m === b.m) return `${a.d} – ${b.d} ${MONTHS[lang][b.m - 1]} ${b.y}`;
+  return `${formatDayMonth(startIso, lang)} ${a.y} – ${formatDayMonth(endIso, lang)} ${b.y}`;
+};
+
+/** Whole days between two ISO dates (b − a). */
+export const daysBetween = (aIso: string, bIso: string): number =>
+  Math.round((new Date(bIso).getTime() - new Date(aIso).getTime()) / 86_400_000);
+
+/** Active today (demo "now"), scheduled for later, or already ended. */
+export const delegationPhase = (d: Delegation): 'active' | 'scheduled' | 'ended' =>
+  d.startIso > DEMO_NOW.isoDate ? 'scheduled' : d.endIso < DEMO_NOW.isoDate ? 'ended' : 'active';
 
 // ----------------------------------------------------------------------------
 // 13. Accounts & permissions (10 users)
@@ -517,8 +592,6 @@ export interface UserAccount {
   accessLevelLabel: string;
   twoFactor: boolean;
   status: 'active' | 'restricted' | 'pending';
-  lastActive: string;
-  note?: string;
 }
 
 const localizedUsers: Localizable<UserAccount>[] = [
@@ -531,7 +604,6 @@ const localizedUsers: Localizable<UserAccount>[] = [
     accessLevelLabel: { ar: 'رقابة كاملة وتجميد وثائق', en: 'Full oversight & document freezing' },
     twoFactor: true,
     status: 'active',
-    lastActive: { ar: 'الآن (متصل)', en: 'Now (online)' },
   },
   {
     id: 'u-2',
@@ -542,8 +614,6 @@ const localizedUsers: Localizable<UserAccount>[] = [
     accessLevelLabel: { ar: 'إعداد كراسات ومشاريع', en: 'Booklet & project preparation' },
     twoFactor: true,
     status: 'restricted',
-    lastActive: { ar: 'اليوم، 05:42 ص', en: 'Today, 05:42 AM' },
-    note: { ar: 'معلّق احترازيًا', en: 'Precautionarily suspended' },
   },
   {
     id: 'u-3',
@@ -554,7 +624,6 @@ const localizedUsers: Localizable<UserAccount>[] = [
     accessLevelLabel: { ar: 'اعتماد الميزانيات والصرف', en: 'Budget & disbursement approval' },
     twoFactor: true,
     status: 'active',
-    lastActive: { ar: '6 نوفمبر، 04:10 م', en: '6 November, 04:10 PM' },
   },
   {
     id: 'u-4',
@@ -565,7 +634,6 @@ const localizedUsers: Localizable<UserAccount>[] = [
     accessLevelLabel: { ar: 'مطابقة نظامية وفحص عقود', en: 'Regulatory compliance & contract review' },
     twoFactor: true,
     status: 'active',
-    lastActive: { ar: 'منذ 3 ساعات', en: '3 hours ago' },
   },
   {
     id: 'u-5',
@@ -576,7 +644,6 @@ const localizedUsers: Localizable<UserAccount>[] = [
     accessLevelLabel: { ar: 'اعتماد نهائي وإذن نشر', en: 'Final approval & publishing authorization' },
     twoFactor: true,
     status: 'active',
-    lastActive: { ar: 'منذ ساعتين', en: '2 hours ago' },
   },
   {
     id: 'u-6',
@@ -587,7 +654,6 @@ const localizedUsers: Localizable<UserAccount>[] = [
     accessLevelLabel: { ar: 'إشراف وتأييد الاحتياج التقني', en: 'Oversight & endorsement of technical needs' },
     twoFactor: true,
     status: 'active',
-    lastActive: { ar: 'اليوم، 09:20 ص', en: 'Today, 09:20 AM' },
   },
   {
     id: 'u-7',
@@ -598,7 +664,6 @@ const localizedUsers: Localizable<UserAccount>[] = [
     accessLevelLabel: { ar: 'إعداد العقود ومطابقة التوريد', en: 'Contract preparation & supply reconciliation' },
     twoFactor: true,
     status: 'active',
-    lastActive: { ar: 'أمس، 01:10 م', en: 'Yesterday, 01:10 PM' },
   },
   {
     id: 'u-8',
@@ -606,10 +671,9 @@ const localizedUsers: Localizable<UserAccount>[] = [
     role: { ar: 'نائب رئيس قسم المالية', en: 'Deputy Head of Finance' },
     department: DEPARTMENTS.finance,
     accessLevel: 'financial_approval',
-    accessLevelLabel: { ar: 'اعتماد الميزانيات (مفوّض)', en: 'Budget approval (delegated)' },
+    accessLevelLabel: { ar: 'مراجعة الميزانيات', en: 'Budget review' },
     twoFactor: true,
     status: 'active',
-    lastActive: { ar: 'أمس، 02:35 م', en: 'Yesterday, 02:35 PM' },
   },
   {
     id: 'u-9',
@@ -620,7 +684,6 @@ const localizedUsers: Localizable<UserAccount>[] = [
     accessLevelLabel: { ar: 'إدارة السجلات ولجان الإتلاف', en: 'Records management & disposal committees' },
     twoFactor: true,
     status: 'active',
-    lastActive: { ar: 'منذ يومين', en: '2 days ago' },
   },
   {
     id: 'u-10',
@@ -631,7 +694,6 @@ const localizedUsers: Localizable<UserAccount>[] = [
     accessLevelLabel: { ar: 'تدقيق الأثر الرقمي والمطابقة', en: 'Digital footprint audit & compliance' },
     twoFactor: true,
     status: 'active',
-    lastActive: { ar: 'اليوم، 10:15 ص', en: 'Today, 10:15 AM' },
   },
 ];
 
@@ -690,7 +752,7 @@ const localizedReadiness: Localizable<ReadinessCheck>[] = [
   },
   {
     id: 'manager',
-    title: { ar: 'موافقة المدير المباشر', en: 'Direct manager approval' },
+    title: { ar: 'موافقة المراقب العام', en: 'Chief auditor approval' },
     detail: { ar: 'بانتظار قرارك على تنبيه الاعتماد المستعجل', en: 'Awaiting your decision on the urgent-approval alert' },
     state: 'waiting',
   },
@@ -719,7 +781,7 @@ export const EXCEPTION_REQUEST = {
   code: 'PO-3310',
   title: { ar: 'أمر شراء خوادم احتياطية', en: 'Purchase Order for Backup Servers' },
   stageToSkip: { ar: 'المراجعة المالية', en: 'Financial review' },
-  requester: PEOPLE.salman.name,
+  requester: PEOPLE.khalid.name,
   reason: {
     ar: 'عطل في الخادم الرئيسي يهدد استمرارية الخدمة، وتُستكمل المراجعة المالية لاحقًا خلال 48 ساعة.',
     en: 'A failure in the main server threatens service continuity; the financial review will be completed within 48 hours.',
@@ -1099,7 +1161,7 @@ const localizedDocuments: Localizable<DocumentDossier>[] = [
       { ar: 'اعتماد مستعجل', en: 'Urgent approval' },
       { ar: '38 صفحة خلال 12 ثانية', en: '38 pages in 12 seconds' },
       { ar: 'توقيع بالتفويض', en: 'Delegated signature' },
-      { ar: 'بانتظار موافقة المدير المباشر', en: 'Awaiting direct manager approval' },
+      { ar: 'بانتظار موافقة المراقب العام', en: 'Awaiting chief auditor approval' },
     ],
 
     governance: {
@@ -1113,10 +1175,10 @@ const localizedDocuments: Localizable<DocumentDossier>[] = [
 
       platformApprovalStatus: 'routed_to_dept_head',
       approvalDecisionText: {
-        ar: 'رُصد اعتماد مستعجل في مرحلة المراجعة المالية (38 صفحة خلال 12 ثانية)، وأُحيل الطلب تلقائيًا إلى المدير المباشر للموافقة قبل متابعة المسار.',
-        en: 'An urgent approval was detected at the financial review stage (38 pages in 12 seconds), and the request was automatically routed to the direct manager for approval before the path continues.',
+        ar: 'رُصد اعتماد مستعجل في مرحلة المراجعة المالية (38 صفحة خلال 12 ثانية)، وأُحيل الطلب تلقائيًا إلى المراقب العام للموافقة قبل متابعة المسار.',
+        en: 'An urgent approval was detected at the financial review stage (38 pages in 12 seconds), and the request was automatically routed to the chief auditor for approval before the path continues.',
       },
-      assignedAuthority: join(PEOPLE.fahad.name, { ar: ' (المدير المباشر)', en: ' (Direct manager)' }),
+      assignedAuthority: join(PEOPLE.fahad.name, { ar: ' (المراقب العام)', en: ' (Chief auditor)' }),
       actionDetails: [
         join(
           { ar: 'اكتملت مرحلتا الإعداد (', en: 'The preparation (' },
@@ -1131,8 +1193,8 @@ const localizedDocuments: Localizable<DocumentDossier>[] = [
           { ar: ' على 38 صفحة خلال 12 ثانية، بينما يتطلب الاطلاع المتوقع نحو 19 دقيقة.', en: ' on 38 pages within 12 seconds, while the expected reading time is about 19 minutes.' }
         ),
         {
-          ar: 'لا يتابع المستند مساره إلى الاعتماد النهائي إلا بعد موافقة المدير المباشر.',
-          en: 'The document does not proceed to final approval until the direct manager approves.',
+          ar: 'لا يتابع المستند مساره إلى الاعتماد النهائي إلا بعد موافقة المراقب العام.',
+          en: 'The document does not proceed to final approval until the chief auditor approves.',
         },
       ],
     },
@@ -1199,8 +1261,8 @@ const localizedDocuments: Localizable<DocumentDossier>[] = [
         status: 'pending',
         orderCompliant: true,
         notes: {
-          ar: 'وُقّعت 38 صفحة خلال 12 ثانية — بانتظار موافقة المدير المباشر',
-          en: '38 pages signed in 12 seconds — awaiting the direct manager’s approval',
+          ar: 'وُقّعت 38 صفحة خلال 12 ثانية — بانتظار موافقة المراقب العام',
+          en: '38 pages signed in 12 seconds — awaiting the chief auditor’s approval',
         },
       },
       {
@@ -1286,7 +1348,7 @@ const localizedDocuments: Localizable<DocumentDossier>[] = [
         avatar: 'SO',
         department: DEPARTMENTS.finance,
         status: 'pending',
-        timestamp: { ar: 'بانتظار موافقة المدير المباشر', en: 'Awaiting direct manager approval' },
+        timestamp: { ar: 'بانتظار موافقة المراقب العام', en: 'Awaiting chief auditor approval' },
       },
       {
         id: 'sig-204',
@@ -1320,8 +1382,8 @@ const localizedDocuments: Localizable<DocumentDossier>[] = [
 
     aiAnalysis: {
       summary: {
-        ar: 'رصد النظام اعتمادًا مستعجلًا في مرحلة المراجعة المالية: وُقّعت 38 صفحة خلال 12 ثانية بالتفويض، فأُحيل الطلب إلى المدير المباشر قبل متابعة المسار.',
-        en: 'The system detected an urgent approval at the financial review stage: 38 pages were signed within 12 seconds under delegation, so the request was routed to the direct manager before the path continues.',
+        ar: 'رصد النظام اعتمادًا مستعجلًا في مرحلة المراجعة المالية: وُقّعت 38 صفحة خلال 12 ثانية بالتفويض، فأُحيل الطلب إلى المراقب العام قبل متابعة المسار.',
+        en: 'The system detected an urgent approval at the financial review stage: 38 pages were signed within 12 seconds under delegation, so the request was routed to the chief auditor before the path continues.',
       },
       detectedConflicts: [
         { ar: 'مدة الاطلاع غير كافية مقارنة بعدد الصفحات.', en: 'Reading time is insufficient for the number of pages.' },

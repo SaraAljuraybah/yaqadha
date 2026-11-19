@@ -1,5 +1,5 @@
 import React, { createContext, useCallback, useContext, useMemo, useState } from 'react';
-import { CaseOutcome, DemoDecisions, RequestOutcome, deriveStats, resolvedCodes } from '../data/demo';
+import { CaseOutcome, Delegation, DemoDecisions, INITIAL_DELEGATIONS, RequestOutcome, deriveStats, resolvedCodes } from '../data/demo';
 
 // Decisions taken during this session (in memory only — a reload resets the demo).
 
@@ -24,6 +24,9 @@ interface DemoDecisionsValue {
   decideCase: (outcome: CaseOutcome, note: Omit<CaseNote, 'id' | 'time' | 'kind'>) => void;
   addCaseNote: (note: Omit<CaseNote, 'id' | 'time'>) => void;
   decideRequest: (request: 'urgent' | 'exception', outcome: RequestOutcome, comment: string) => void;
+  delegations: Delegation[];
+  addDelegation: (delegation: Omit<Delegation, 'id'>) => void;
+  cancelDelegation: (id: string) => void;
 }
 
 const DemoDecisionsContext = createContext<DemoDecisionsValue | null>(null);
@@ -38,6 +41,15 @@ export const DemoDecisionsProvider: React.FC<{ children: React.ReactNode }> = ({
   const [decisions, setDecisions] = useState<DemoDecisions>({});
   const [caseNotes, setCaseNotes] = useState<CaseNote[]>([]);
   const [requestComments, setRequestComments] = useState<{ urgent?: string; exception?: string }>({});
+  const [delegations, setDelegations] = useState<Delegation[]>(INITIAL_DELEGATIONS);
+
+  const addDelegation = useCallback((delegation: Omit<Delegation, 'id'>) => {
+    setDelegations((prev) => [...prev, { ...delegation, id: `del-session-${prev.length + 1}` }]);
+  }, []);
+
+  const cancelDelegation = useCallback((id: string) => {
+    setDelegations((prev) => prev.filter((d) => d.id !== id));
+  }, []);
 
   const addCaseNote = useCallback((note: Omit<CaseNote, 'id' | 'time'>) => {
     setCaseNotes((prev) => [...prev, { ...note, id: `case-note-${prev.length + 1}`, time: nowLabel() }]);
@@ -66,8 +78,11 @@ export const DemoDecisionsProvider: React.FC<{ children: React.ReactNode }> = ({
       decideCase,
       addCaseNote,
       decideRequest,
+      delegations,
+      addDelegation,
+      cancelDelegation,
     }),
-    [decisions, caseNotes, requestComments, decideCase, addCaseNote, decideRequest]
+    [decisions, caseNotes, requestComments, decideCase, addCaseNote, decideRequest, delegations, addDelegation, cancelDelegation]
   );
 
   return <DemoDecisionsContext.Provider value={value}>{children}</DemoDecisionsContext.Provider>;

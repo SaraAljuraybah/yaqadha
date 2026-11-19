@@ -3,6 +3,7 @@ import { ArrowLeftRight, Check, CheckCircle2, Clock, Eye, Lock, X, XCircle, Luci
 import { TranslationKey, useLanguage } from '../i18n';
 import {
   DEPARTMENTS,
+  CURRENT_USER,
   EXCEPTION_REQUEST,
   PEOPLE,
   ReadinessCheck,
@@ -174,16 +175,19 @@ export const ApprovalRequestsScreen: React.FC<ApprovalRequestsScreenProps> = ({ 
       : ['done', 'done', 'current', 'pending'];
 
   // Readiness checks after the decision
-  const checks: (Omit<ReadinessCheck, 'state'> & { state: CheckState })[] = baseChecks.map((check) => {
-    if (urgent === 'approved' && check.id === 'reading_time') return { ...check, state: 'done', detail: t('approvals.readingAccepted') };
+  // A human decision is recorded alongside the evidence and never erases it: the failed reading-time check keeps
+  // its state and colour, gets an "accepted as exception" label, and is not counted toward readiness.
+  const checks: (Omit<ReadinessCheck, 'state'> & { state: CheckState; acceptedException?: boolean })[] = baseChecks.map((check) => {
+    if (urgent === 'approved' && check.id === 'reading_time') return { ...check, acceptedException: true };
     if (urgent === 'approved' && check.id === 'manager') return { ...check, state: 'done', detail: t('approvals.managerApproved') };
     if (urgent === 'approved' && check.id === 'final_signature') return { ...check, state: 'waiting', detail: t('approvals.finalSignatureWaiting', { name: PEOPLE.abdullah.name[lang] }) };
     if (urgent === 'rejected' && check.id === 'manager') return { ...check, state: 'rejected', detail: t('approvals.managerRejected') };
     return check;
   });
   const doneCount = checks.filter((c) => c.state === 'done').length;
-  // Checks still open before the final signature (the final signature itself is not counted)
-  const remaining = checks.filter((c) => c.id !== 'final_signature' && c.state !== 'done').length;
+  const acceptedExceptions = checks.filter((c) => c.acceptedException).length;
+  // Checks still open before the final signature (the final signature and accepted exceptions are not counted)
+  const remaining = checks.filter((c) => c.id !== 'final_signature' && c.state !== 'done' && !c.acceptedException).length;
 
   const statusBadge =
     urgent === 'approved'
@@ -196,13 +200,13 @@ export const ApprovalRequestsScreen: React.FC<ApprovalRequestsScreenProps> = ({ 
     urgent === 'rejected'
       ? t('approvals.readinessReturned')
       : remaining === 0
-      ? t('approvals.readinessAwaitingFinal')
+      ? t(acceptedExceptions > 0 ? 'approvals.readinessAwaitingFinalWithException' : 'approvals.readinessAwaitingFinal')
       : t('approvals.readinessNotReady');
   const readinessDetail =
     urgent === 'rejected'
       ? t('approvals.readinessReturnedDetail')
       : remaining === 0
-      ? t('approvals.remainingNone')
+      ? t(acceptedExceptions > 0 ? 'approvals.remainingNoneWithException' : 'approvals.remainingNone')
       : remaining === 1
       ? t('approvals.remainingOne')
       : remaining === 2
@@ -218,7 +222,7 @@ export const ApprovalRequestsScreen: React.FC<ApprovalRequestsScreenProps> = ({ 
   const textareaCls =
     'w-full rounded-xl border border-slate-200 bg-white p-3 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#2C3E28] resize-y';
   const approveCls =
-    'inline-flex items-center gap-1.5 h-10 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold transition-colors';
+    'inline-flex items-center gap-1.5 h-10 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed';
   const rejectCls =
     'inline-flex items-center gap-1.5 h-10 px-4 rounded-xl border border-red-300 bg-red-50 text-red-700 hover:bg-red-100 text-sm font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed';
 
@@ -270,10 +274,13 @@ export const ApprovalRequestsScreen: React.FC<ApprovalRequestsScreenProps> = ({ 
             <ReadinessRing done={doneCount} total={checks.length} label={t('approvals.readinessAria', { done: doneCount, total: checks.length })} />
             <div>
               <div className="text-xs text-slate-500">{t('approvals.readinessTitle')}</div>
-              <div className={`text-lg font-bold ${urgent === 'rejected' ? 'text-red-700' : remaining === 0 ? 'text-emerald-700' : 'text-amber-700'}`}>
+              <div className={`text-lg font-bold ${urgent === 'rejected' ? 'text-red-700' : remaining === 0 && acceptedExceptions === 0 ? 'text-emerald-700' : 'text-amber-700'}`}>
                 {readinessHeadline}
               </div>
               <div className="text-xs text-slate-500 mt-0.5">{readinessDetail}</div>
+              {acceptedExceptions > 0 && (
+                <div className="text-xs font-bold text-amber-700 mt-1">{t('approvals.exceptionsAccepted', { count: acceptedExceptions })}</div>
+              )}
             </div>
           </div>
 
@@ -289,6 +296,19 @@ export const ApprovalRequestsScreen: React.FC<ApprovalRequestsScreenProps> = ({ 
                   <div className="min-w-0">
                     <div className="text-sm font-bold text-slate-900">{check.title}</div>
                     <div className="text-xs text-slate-500 mt-0.5">{check.detail}</div>
+                    {check.acceptedException && (
+                      <div className="mt-1.5 space-y-1">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full border border-amber-300 bg-amber-50 text-[11px] font-bold text-amber-800">
+                          {t('approvals.acceptedAsException', { name: CURRENT_USER.name[lang] })}
+                        </span>
+                        {requestComments.urgent && (
+                          <p className="text-xs text-slate-600">
+                            <span className="font-bold">{t('approvals.yourComment')}: </span>
+                            {requestComments.urgent}
+                          </p>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </li>
               );
@@ -360,10 +380,10 @@ export const ApprovalRequestsScreen: React.FC<ApprovalRequestsScreenProps> = ({ 
                   placeholder={t('approvals.urgentCommentPlaceholder')}
                   className={textareaCls}
                 />
-                <p className="text-[11px] text-slate-500">{t('approvals.rejectNeedsComment')}</p>
+                <p className="text-[11px] text-slate-500">{t('approvals.commentRequired')}</p>
               </div>
               <div className="flex flex-wrap gap-2">
-                <button type="button" id="btn-urgent-approve" className={approveCls} onClick={() => decideRequest('urgent', 'approved', urgentComment.trim())}>
+                <button type="button" id="btn-urgent-approve" className={approveCls} disabled={!urgentComment.trim()} onClick={() => decideRequest('urgent', 'approved', urgentComment.trim())}>
                   <Check className="w-4 h-4" />
                   {t('approvals.urgentApprove')}
                 </button>
@@ -431,10 +451,10 @@ export const ApprovalRequestsScreen: React.FC<ApprovalRequestsScreenProps> = ({ 
                   placeholder={t('approvals.exceptionCommentPlaceholder')}
                   className={textareaCls}
                 />
-                <p className="text-[11px] text-slate-500">{t('approvals.rejectNeedsComment')}</p>
+                <p className="text-[11px] text-slate-500">{t('approvals.commentRequired')}</p>
               </div>
               <div className="flex flex-wrap gap-2">
-                <button type="button" id="btn-exception-approve" className={approveCls} onClick={() => decideRequest('exception', 'approved', exceptionComment.trim())}>
+                <button type="button" id="btn-exception-approve" className={approveCls} disabled={!exceptionComment.trim()} onClick={() => decideRequest('exception', 'approved', exceptionComment.trim())}>
                   <Check className="w-4 h-4" />
                   {t('approvals.exceptionApprove')}
                 </button>

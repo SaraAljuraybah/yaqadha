@@ -105,12 +105,15 @@
 
   /* Native select dropdowns follow the dark palette */
   html.dark #tender-risk-assessment-screen select,
-  html.dark #documents-registry-screen select {
+  html.dark #documents-registry-screen select,
+  html.dark #access-management-screen select,
+  html.dark #access-management-screen input[type='date'] {
     color-scheme: dark;
   }
   html.dark #tender-risk-assessment-screen select option,
   html.dark #tender-risk-assessment-screen select optgroup,
-  html.dark #documents-registry-screen select option {
+  html.dark #documents-registry-screen select option,
+  html.dark #access-management-screen select option {
     background-color: #161C18;
     color: #EEF2EF;
   }
