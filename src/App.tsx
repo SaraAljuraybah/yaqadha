@@ -5,10 +5,11 @@ import { useLanguage } from './i18n';
 import { Sidebar } from './components/Sidebar';
 import { TopHeader } from './components/TopHeader';
 import { DemoBanner } from './components/DemoBanner';
-import { PlaceholderScreen } from './components/PlaceholderScreen';
 import { OverviewScreen } from './components/OverviewScreen';
 import { FileDossierScreen } from './components/FileDossierScreen';
-import { CaseDecision, CaseScreen, SessionNote } from './components/CaseScreen';
+import { CaseScreen } from './components/CaseScreen';
+import { ApprovalRequestsScreen } from './components/ApprovalRequestsScreen';
+import { useDemoDecisions } from './state/DemoDecisions';
 import { ExecutiveDashboardScreen } from './components/ExecutiveDashboardScreen';
 import { AccessManagementScreen } from './components/AccessManagementScreen';
 import { TenderRiskAssessmentScreen } from './components/TenderRiskAssessmentScreen';
@@ -35,10 +36,6 @@ interface ToastState {
   type: ToastType;
 }
 
-/** Time label for a note saved now, e.g. "10:42 ص" / "10:42 AM". */
-const nowLabel = (lang: 'ar' | 'en') =>
-  new Date().toLocaleTimeString(lang === 'ar' ? 'ar-u-nu-latn' : 'en-US', { hour: '2-digit', minute: '2-digit' });
-
 export default function App() {
   const [activeScreen, setActiveScreen] = useState<ActiveScreen>('overview');
   const { lang, t } = useLanguage();
@@ -50,9 +47,10 @@ export default function App() {
   // Shell state
   const [demoMode, setDemoMode] = useState<boolean>(readDemoMode);
 
-  // Case (DOC-2026-01) state: the human decision and the append-only notes added this session
-  const [caseDecision, setCaseDecision] = useState<CaseDecision>('pending');
-  const [sessionNotes, setSessionNotes] = useState<SessionNote[]>([]);
+  // Decisions taken this session (shared with the sidebar, bell, overview and registry)
+  const { decideCase, addCaseNote } = useDemoDecisions();
+  // Request to scroll to on the approvals page (e.g. PO-3310)
+  const [approvalsFocus, setApprovalsFocus] = useState<string | undefined>(undefined);
 
   // Modals state
   const [isPrePublishModalOpen, setIsPrePublishModalOpen] = useState(false);
@@ -76,6 +74,7 @@ export default function App() {
   const caseDocument = documents.find((d) => d.id === CASE_FILE.dossierId) || documents[0];
 
   const navigate = useCallback((screen: ActiveScreen) => {
+    setApprovalsFocus(undefined);
     setActiveScreen(screen);
     window.scrollTo({ top: 0 });
   }, []);
@@ -86,10 +85,12 @@ export default function App() {
    */
   const openDocumentByCode = useCallback((code: string) => {
     const doc = getRegisterDocuments(lang).find((d) => d.code === code);
-    if (!doc) return;
-    if (doc.status === 'suspended') {
+    // Never route to a page that does not exist; the case file is the only case page
+    if (!doc || !doc.hasDetailPage) return;
+    if (doc.code === CASE_FILE.code) {
       setActiveScreen('indicators_hub');
     } else if (doc.status === 'under_review' || doc.status === 'pending_approval') {
+      setApprovalsFocus(doc.code);
       setActiveScreen('approval_requests');
     } else if (doc.dossierId) {
       setSelectedDocId(doc.dossierId);
@@ -116,9 +117,6 @@ export default function App() {
       return next;
     });
   };
-
-  const addCaseNote = (note: Omit<SessionNote, 'id' | 'time'>) =>
-    setSessionNotes((prev) => [...prev, { ...note, id: `session-note-${prev.length + 1}`, time: nowLabel(lang) }]);
 
   const handlePublishSuccess = (docTitle: string) => {
     showToast({ title: t('toasts.autoApprovalTitle'), desc: t('toasts.autoApprovalBody', { title: docTitle }), type: 'success' });
@@ -176,17 +174,14 @@ export default function App() {
           {activeScreen === 'indicators_hub' && (
             <CaseScreen
               document={caseDocument}
-              decision={caseDecision}
-              sessionNotes={sessionNotes}
-              onAddNote={(text) => addCaseNote({ kind: 'user', text })}
               onRequestStatement={() => setIsStatementModalOpen(true)}
               onLiftSuspension={() => setIsLiftModalOpen(true)}
               onApproveEscalation={() => setIsEscalateModalOpen(true)}
             />
           )}
 
-          {/* طلبات الاعتماد — built in stage 5 */}
-          {activeScreen === 'approval_requests' && <PlaceholderScreen title={t('sidebar.approvals')} stage={5} />}
+          {/* طلبات الاعتماد */}
+          {activeScreen === 'approval_requests' && <ApprovalRequestsScreen focusCode={approvalsFocus} />}
 
           {/* إدارة الحسابات والصلاحيات */}
           {activeScreen === 'access_management' && <AccessManagementScreen />}
@@ -218,10 +213,7 @@ export default function App() {
         isOpen={isEscalateModalOpen}
         onClose={() => setIsEscalateModalOpen(false)}
         document={caseDocument}
-        onConfirmEscalate={() => {
-          setCaseDecision('escalated');
-          addCaseNote({ kind: 'escalated' });
-        }}
+        onConfirmEscalate={() => decideCase('escalated', {})}
       />
 
       <StatementRequestModal
@@ -236,8 +228,7 @@ export default function App() {
         onClose={() => setIsLiftModalOpen(false)}
         onConfirm={(reason) => {
           setIsLiftModalOpen(false);
-          setCaseDecision('lifted');
-          addCaseNote({ kind: 'lifted', reason });
+          decideCase('lifted', { reason });
         }}
       />
 

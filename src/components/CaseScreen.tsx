@@ -23,31 +23,16 @@ import {
   CaseTimelineEvent,
   DEPARTMENTS,
   getCaseTimeline,
-  getInitialReviewerNotes,
   getRegisterDocuments,
   legalRef,
 } from '../data/demo';
 import { RiskAssessmentPanel } from './RiskAssessmentPanel';
+import { useDemoDecisions } from '../state/DemoDecisions';
 
 // Case page for a precautionary suspension (مؤشرات المستندات)
 
-export type CaseDecision = 'pending' | 'lifted' | 'escalated';
-
-/** A note added during this session. System notes are rendered from the dictionary so they follow the language. */
-export interface SessionNote {
-  id: string;
-  kind: 'user' | 'lifted' | 'escalated' | 'statement';
-  text?: string;
-  reason?: string;
-  /** Time label captured when the note was saved */
-  time: string;
-}
-
 interface CaseScreenProps {
   document: DocumentDossier;
-  decision: CaseDecision;
-  sessionNotes: SessionNote[];
-  onAddNote: (text: string) => void;
   onRequestStatement: () => void;
   onLiftSuspension: () => void;
   onApproveEscalation: () => void;
@@ -83,7 +68,7 @@ const stageVisual = (step: SignatureStep): { icon: LucideIcon; ring: string; lab
   if (step.status === 'signed') return { icon: Check, ring: 'border-emerald-500 text-emerald-600 bg-emerald-50', label: 'casePage.stageCompleted', text: 'text-emerald-700' };
   if (step.status === 'bypassed' || step.status === 'skipped')
     return { icon: X, ring: 'border-red-500 text-red-600 bg-red-50', label: 'casePage.stageBypassed', text: 'text-red-700' };
-  return { icon: Clock, ring: 'border-amber-500 text-amber-600 bg-amber-50', label: 'casePage.stagePublishRequested', text: 'text-amber-700' };
+  return { icon: Clock, ring: 'border-amber-500 text-amber-600 bg-amber-50', label: 'common.publishRequested', text: 'text-amber-700' };
 };
 
 /** Connector after a stage takes that stage's outcome: green when signed, red when bypassed. */
@@ -132,9 +117,6 @@ const timelineVisual: Record<CaseTimelineEvent['kind'], { icon: LucideIcon; tone
 
 export const CaseScreen: React.FC<CaseScreenProps> = ({
   document,
-  decision,
-  sessionNotes,
-  onAddNote,
   onRequestStatement,
   onLiftSuspension,
   onApproveEscalation,
@@ -142,14 +124,14 @@ export const CaseScreen: React.FC<CaseScreenProps> = ({
   const { lang, t } = useLanguage();
   const [draft, setDraft] = useState('');
   const timeline = useMemo(() => getCaseTimeline(lang), [lang]);
-  const initialNotes = useMemo(() => getInitialReviewerNotes(lang), [lang]);
+  const { decisions, caseNotes, addCaseNote } = useDemoDecisions();
+  const decision = decisions.case ?? 'pending';
   const registerEntry = useMemo(() => getRegisterDocuments(lang).find((d) => d.code === CASE_FILE.code), [lang]);
   const title = registerEntry?.shortTitle ?? document.title;
   const department = registerEntry ? DEPARTMENTS[registerEntry.department][lang] : document.department;
 
   const notes = [
-    ...initialNotes.map((n) => ({ id: n.id, author: n.author, time: n.time, text: n.text })),
-    ...sessionNotes.map((n) => ({
+    ...caseNotes.map((n) => ({
       id: n.id,
       author: CURRENT_USER.name[lang],
       time: n.time,
@@ -185,7 +167,7 @@ export const CaseScreen: React.FC<CaseScreenProps> = ({
   const saveNote = () => {
     const text = draft.trim();
     if (!text) return;
-    onAddNote(text);
+    addCaseNote({ kind: 'user', text });
     setDraft('');
   };
 
@@ -331,6 +313,7 @@ export const CaseScreen: React.FC<CaseScreenProps> = ({
       {/* Reviewer notes (append-only) */}
       <section className={`${card} p-5 space-y-4`}>
         <SectionHeader icon={NotebookPen} tone={SKY_TILE} title={t('casePage.notesTitle')} subtitle={t('casePage.notesSubtitle')} />
+        {notes.length === 0 && <p className="text-sm text-slate-500">{t('casePage.notesEmpty')}</p>}
         <ul className="space-y-2.5">
           {notes.map((note) => (
             <li key={note.id} className="rounded-xl border border-slate-100 bg-slate-50 p-4">

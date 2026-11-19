@@ -10,7 +10,7 @@ import {
 } from 'lucide-react';
 import { ActiveScreen } from '../types';
 import { TranslationKey, useLanguage } from '../i18n';
-import { DEMO_STATS } from '../data/demo';
+import { useDemoDecisions } from '../state/DemoDecisions';
 
 interface SidebarProps {
   activeScreen: ActiveScreen;
@@ -29,8 +29,10 @@ interface NavItem {
   badge?: { count: number; tone: BadgeTone; label: TranslationKey };
 }
 
-// Order and counts follow the target design; counts come from the central demo data
-const NAV_ITEMS: NavItem[] = [
+type Stats = ReturnType<typeof useDemoDecisions>['stats'];
+
+// Order follows the target design; counts come from the central data and the session's decisions
+const navItems = (stats: Stats, pendingRequests: number): NavItem[] => [
   { id: 'overview', screen: 'overview', label: 'sidebar.overview', icon: Home },
   {
     id: 'documents',
@@ -38,21 +40,21 @@ const NAV_ITEMS: NavItem[] = [
     alsoActiveOn: ['file_dossier'],
     label: 'sidebar.documents',
     icon: LayoutGrid,
-    badge: { count: DEMO_STATS.totalDocuments, tone: 'neutral', label: 'sidebar.documentsBadgeLabel' },
+    badge: { count: stats.totalDocuments, tone: 'neutral', label: 'sidebar.documentsBadgeLabel' },
   },
   {
     id: 'indicators',
     screen: 'indicators_hub',
     label: 'sidebar.indicators',
     icon: SlidersHorizontal,
-    badge: { count: DEMO_STATS.suspendedAwaitingDecision, tone: 'red', label: 'sidebar.indicatorsBadgeLabel' },
+    badge: { count: stats.suspendedAwaitingDecision, tone: 'red', label: 'sidebar.indicatorsBadgeLabel' },
   },
   {
     id: 'approvals',
     screen: 'approval_requests',
     label: 'sidebar.approvals',
     icon: Stamp,
-    badge: { count: DEMO_STATS.awaitingDecision, tone: 'amber', label: 'sidebar.approvalsBadgeLabel' },
+    badge: { count: pendingRequests, tone: 'amber', label: 'sidebar.approvalsBadgeLabel' },
   },
   { id: 'access', screen: 'access_management', label: 'sidebar.accessManagement', icon: ShieldCheck },
   { id: 'tender-risk', screen: 'tender_risk_assessment', label: 'sidebar.tenderRisk', icon: Gauge },
@@ -69,6 +71,9 @@ const isNavItemActive = (item: NavItem, activeScreen: ActiveScreen) =>
 
 export const Sidebar: React.FC<SidebarProps> = ({ activeScreen, onNavigate }) => {
   const { t } = useLanguage();
+  const { stats, decisions } = useDemoDecisions();
+  // Approval requests awaiting a decision (YQ-8841 urgent approval, PO-3310 exception); the case has its own badge
+  const pendingRequests = (decisions.urgent ? 0 : 1) + (decisions.exception ? 0 : 1);
 
   return (
     <aside
@@ -88,7 +93,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeScreen, onNavigate }) =>
 
       {/* Navigation */}
       <nav className="px-4 pb-4 space-y-1.5 overflow-y-auto" aria-label={t('sidebar.navAriaLabel')}>
-        {NAV_ITEMS.map((item) => {
+        {navItems(stats, pendingRequests).map((item) => {
           const active = isNavItemActive(item, activeScreen);
           const Icon = item.icon;
           return (

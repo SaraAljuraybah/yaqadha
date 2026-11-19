@@ -4,7 +4,6 @@ import { TranslationKey, useLanguage } from '../i18n';
 import {
   CURRENT_USER,
   DEMO_NOW,
-  DEMO_STATS,
   DEPARTMENTS,
   DEPARTMENT_INTEGRITY,
   PendingDecisionKind,
@@ -13,6 +12,7 @@ import {
   getRegisterDocuments,
   oldestPendingHours,
 } from '../data/demo';
+import { useDemoDecisions } from '../state/DemoDecisions';
 
 interface OverviewScreenProps {
   /** Opens a document by code (routed by its status) */
@@ -96,16 +96,17 @@ const IntegrityGauge: React.FC<{ score: number; label: string; caption: string }
 
 export const OverviewScreen: React.FC<OverviewScreenProps> = ({ onOpenDocument }) => {
   const { lang, t } = useLanguage();
-  const pending = useMemo(() => getPendingDecisions(lang), [lang]);
+  const { stats, resolved } = useDemoDecisions();
+  const pending = useMemo(() => getPendingDecisions(lang).filter((p) => !resolved.includes(p.code)), [lang, resolved]);
   const alerts = useMemo(() => getLatestAlerts(lang), [lang]);
   const titles = useMemo(
     () => Object.fromEntries(getRegisterDocuments(lang).map((d) => [d.code, d.title])) as Record<string, string>,
     [lang]
   );
 
-  const hours = oldestPendingHours();
+  const hours = oldestPendingHours(pending);
   const isMorning = Number(DEMO_NOW.time.split(':')[0]) < 12;
-  const integrityTone = scoreTone(DEMO_STATS.integrityIndex);
+  const integrityTone = scoreTone(stats.integrityIndex);
 
   return (
     <div id="overview-screen" className="space-y-6 text-start">
@@ -121,13 +122,13 @@ export const OverviewScreen: React.FC<OverviewScreenProps> = ({ onOpenDocument }
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
         {/* Integrity index */}
         <div className={`${card} p-5 flex items-center gap-4 sm:col-span-2 xl:col-span-1`}>
-          <IntegrityGauge score={DEMO_STATS.integrityIndex} label={t('overview.integrityAria', { score: DEMO_STATS.integrityIndex })} caption={t('overview.outOf100')} />
+          <IntegrityGauge score={stats.integrityIndex} label={t('overview.integrityAria', { score: stats.integrityIndex })} caption={t('overview.outOf100')} />
           <div className="min-w-0 space-y-1">
             <div className="text-xs text-slate-500">{t('overview.integrityTitle')}</div>
-            <div className="text-lg font-bold text-slate-900">{t(ratingKey(DEMO_STATS.integrityIndex))}</div>
+            <div className="text-lg font-bold text-slate-900">{t(ratingKey(stats.integrityIndex))}</div>
             <div className={`flex items-center gap-1 text-xs font-medium ${integrityTone.text}`}>
               <TrendingUp className="w-3.5 h-3.5 shrink-0" />
-              <span>{t('overview.integrityDelta', { points: DEMO_STATS.integrityDelta })}</span>
+              <span>{t('overview.integrityDelta', { points: stats.integrityDelta })}</span>
             </div>
           </div>
         </div>
@@ -138,8 +139,10 @@ export const OverviewScreen: React.FC<OverviewScreenProps> = ({ onOpenDocument }
             <IconTile icon={Stamp} tone="bg-amber-50 text-amber-700 border-amber-200" />
             <span className="text-sm text-slate-600">{t('overview.pendingTitle')}</span>
           </div>
-          <div className="text-3xl font-bold text-amber-600 dark:text-amber-400">{DEMO_STATS.awaitingDecision}</div>
-          <div className="text-xs text-amber-700">{t(oldestKey(hours), { hours })}</div>
+          <div className="text-3xl font-bold text-amber-600 dark:text-amber-400">{stats.awaitingDecision}</div>
+          <div className="text-xs text-amber-700">
+            {hours === null ? t('overview.pendingNone') : t(oldestKey(hours), { hours })}
+          </div>
         </div>
 
         {/* Active alerts */}
@@ -148,8 +151,12 @@ export const OverviewScreen: React.FC<OverviewScreenProps> = ({ onOpenDocument }
             <IconTile icon={AlertTriangle} tone="bg-red-50 text-red-700 border-red-200" />
             <span className="text-sm text-slate-600">{t('overview.activeAlertsTitle')}</span>
           </div>
-          <div className="text-3xl font-bold text-red-600 dark:text-red-400">{DEMO_STATS.activeAlerts}</div>
-          <div className="text-xs text-red-700">{t('overview.activeAlertsSuspended', { count: DEMO_STATS.suspendedAwaitingDecision })}</div>
+          <div className="text-3xl font-bold text-red-600 dark:text-red-400">{stats.activeAlerts}</div>
+          <div className="text-xs text-red-700">
+            {stats.suspendedAwaitingDecision > 0
+              ? t('overview.activeAlertsSuspended', { count: stats.suspendedAwaitingDecision })
+              : t('overview.activeAlertsNoSuspension')}
+          </div>
         </div>
 
         {/* Approved this month */}
@@ -158,7 +165,7 @@ export const OverviewScreen: React.FC<OverviewScreenProps> = ({ onOpenDocument }
             <IconTile icon={Check} tone="bg-emerald-50 text-emerald-700 border-emerald-200" />
             <span className="text-sm text-slate-600">{t('overview.approvedMonthTitle')}</span>
           </div>
-          <div className="text-3xl font-bold text-slate-900">{DEMO_STATS.approvedThisMonth}</div>
+          <div className="text-3xl font-bold text-slate-900">{stats.approvedThisMonth}</div>
           <div className="text-xs text-emerald-700">{t('overview.approvedMonthNote')}</div>
         </div>
       </div>
@@ -172,6 +179,7 @@ export const OverviewScreen: React.FC<OverviewScreenProps> = ({ onOpenDocument }
             title={t('overview.pendingListTitle')}
             subtitle={t('overview.pendingListSubtitle')}
           />
+          {pending.length === 0 && <p className="text-sm text-slate-500 py-6 text-center">{t('overview.pendingEmpty')}</p>}
           <ul className="space-y-2.5">
             {pending.map((item) => {
               const style = kindStyles[item.kind];

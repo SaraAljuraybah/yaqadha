@@ -5,6 +5,8 @@ import {
   COMPLIANCE_TREND,
   DEMO_NOW,
   DEMO_STATS,
+  StageState,
+  applyDecisionsToRegister,
   DEPARTMENTS,
   DepartmentId,
   RegisterDocument,
@@ -12,6 +14,7 @@ import {
   Severity,
   getRegisterDocuments,
 } from '../data/demo';
+import { useDemoDecisions } from '../state/DemoDecisions';
 
 // سجل المستندات — documents registry
 
@@ -42,26 +45,38 @@ const matchesStatus = (status: RegisterStatus, filter: StatusFilter) =>
   (filter === 'review' && (status === 'under_review' || status === 'pending_approval')) ||
   (filter === 'approved' && status === 'approved');
 
-/** Rounded shares of the 60 documents (82 / 13 / 5). */
+/** Rounded shares of the 60 documents (82 / 13 / 5 before any decision). */
 const share = (count: number) => Math.round((count / DEMO_STATS.totalDocuments) * 100);
 
 // ---- approval stage segments ------------------------------------------------
 
-const StageBar: React.FC<{ doc: RegisterDocument; label: string }> = ({ doc, label }) => {
-  const currentTone =
-    doc.status === 'suspended' ? 'bg-red-500' : doc.status === 'approved' ? 'bg-emerald-500' : 'bg-amber-500';
+const stageTone: Record<StageState, string> = {
+  done: 'bg-emerald-500',
+  bypassed: 'bg-red-500',
+  requested: 'bg-amber-500',
+  current: 'bg-amber-500',
+  pending: 'bg-slate-200',
+};
+
+/** Per-stage states: explicit when the path is irregular, otherwise derived from the current stage. */
+const stageStates = (doc: RegisterDocument): StageState[] =>
+  doc.stages ??
+  Array.from({ length: doc.totalStages }, (_, i) =>
+    doc.status === 'approved' || i < doc.currentStage - 1 ? 'done' : i === doc.currentStage - 1 ? 'current' : 'pending'
+  );
+
+const StageBar: React.FC<{ doc: RegisterDocument }> = ({ doc }) => {
+  const { t } = useLanguage();
+  const states = stageStates(doc);
+  const label = states.includes('requested')
+    ? t('common.publishRequested')
+    : t('documentsRegistry.stageOf', { current: doc.currentStage, total: doc.totalStages });
   return (
     <div className="space-y-1.5">
       <div className="flex gap-1 w-24" aria-hidden="true">
-        {Array.from({ length: doc.totalStages }, (_, i) => {
-          const tone =
-            doc.status === 'approved' || i < doc.currentStage - 1
-              ? 'bg-emerald-500'
-              : i === doc.currentStage - 1
-              ? currentTone
-              : 'bg-slate-200';
-          return <span key={i} className={`h-1.5 flex-1 rounded-full ${tone}`} />;
-        })}
+        {states.map((state, i) => (
+          <span key={i} className={`h-1.5 flex-1 rounded-full ${stageTone[state]}`} />
+        ))}
       </div>
       <div className="text-[11px] text-slate-500">{label}</div>
     </div>
@@ -214,7 +229,8 @@ const FilterSelect: React.FC<{
 
 export const ExecutiveDashboardScreen: React.FC<ExecutiveDashboardScreenProps> = ({ onOpenDocument }) => {
   const { lang, t } = useLanguage();
-  const documents = useMemo(() => getRegisterDocuments(lang), [lang]);
+  const { stats, decisions } = useDemoDecisions();
+  const documents = useMemo(() => applyDecisionsToRegister(getRegisterDocuments(lang), decisions), [lang, decisions]);
 
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [department, setDepartment] = useState<'all' | DepartmentId>('all');
@@ -223,10 +239,10 @@ export const ExecutiveDashboardScreen: React.FC<ExecutiveDashboardScreenProps> =
   const [query, setQuery] = useState('');
 
   const statusTotals: Record<StatusFilter, number> = {
-    all: DEMO_STATS.totalDocuments,
-    suspended: DEMO_STATS.suspended,
-    review: DEMO_STATS.underReview,
-    approved: DEMO_STATS.approved,
+    all: stats.totalDocuments,
+    suspended: stats.suspended,
+    review: stats.underReview,
+    approved: stats.approved,
   };
 
   const filtered = documents.filter((doc) => {
@@ -255,9 +271,9 @@ export const ExecutiveDashboardScreen: React.FC<ExecutiveDashboardScreenProps> =
   };
 
   const segments = [
-    { key: 'approved', count: DEMO_STATS.approved, color: 'bg-emerald-500', text: 'text-emerald-700', legend: 'documentsRegistry.legendApproved' as TranslationKey },
-    { key: 'review', count: DEMO_STATS.underReview, color: 'bg-amber-500', text: 'text-amber-700', legend: 'documentsRegistry.legendReview' as TranslationKey },
-    { key: 'suspended', count: DEMO_STATS.suspended, color: 'bg-red-500', text: 'text-red-700', legend: 'documentsRegistry.legendSuspended' as TranslationKey },
+    { key: 'approved', count: stats.approved, color: 'bg-emerald-500', text: 'text-emerald-700', legend: 'documentsRegistry.legendApproved' as TranslationKey },
+    { key: 'review', count: stats.underReview, color: 'bg-amber-500', text: 'text-amber-700', legend: 'documentsRegistry.legendReview' as TranslationKey },
+    { key: 'suspended', count: stats.suspended, color: 'bg-red-500', text: 'text-red-700', legend: 'documentsRegistry.legendSuspended' as TranslationKey },
   ];
 
   const tabs: { key: StatusFilter; label: TranslationKey; idle: string }[] = [
@@ -280,7 +296,7 @@ export const ExecutiveDashboardScreen: React.FC<ExecutiveDashboardScreenProps> =
         <section className={`${card} p-5 space-y-4`}>
           <div>
             <h2 className="text-base font-bold text-slate-900">{t('documentsRegistry.complianceTitle')}</h2>
-            <p className="text-xs text-slate-500 mt-0.5">{t('documentsRegistry.documentsCount', { count: DEMO_STATS.totalDocuments })}</p>
+            <p className="text-xs text-slate-500 mt-0.5">{t('documentsRegistry.documentsCount', { count: stats.totalDocuments })}</p>
           </div>
           <div className="flex gap-0.5 h-2.5">
             {segments.map((s) => (
@@ -403,7 +419,7 @@ export const ExecutiveDashboardScreen: React.FC<ExecutiveDashboardScreenProps> =
                     <td className="py-4 px-4 font-medium text-slate-900">{doc.title}</td>
                     <td className="py-4 px-4 text-slate-500 whitespace-nowrap">{DEPARTMENTS[doc.department][lang]}</td>
                     <td className="py-4 px-4">
-                      <StageBar doc={doc} label={t('documentsRegistry.stageOf', { current: doc.currentStage, total: doc.totalStages })} />
+                      <StageBar doc={doc} />
                     </td>
                     <td className="py-4 px-4">
                       <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[11px] font-bold whitespace-nowrap ${badge.badge}`}>
@@ -416,8 +432,10 @@ export const ExecutiveDashboardScreen: React.FC<ExecutiveDashboardScreenProps> =
                         type="button"
                         id={`btn-preview-${doc.code}`}
                         onClick={() => onOpenDocument(doc.code)}
+                        disabled={!doc.hasDetailPage}
+                        title={doc.hasDetailPage ? undefined : t('documentsRegistry.noDetailPage')}
                         aria-label={t('documentsRegistry.previewAria', { title: doc.title })}
-                        className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-xl border border-slate-200 bg-white text-xs font-bold text-slate-800 hover:bg-slate-100 transition-colors"
+                        className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-xl border border-slate-200 bg-white text-xs font-bold text-slate-800 hover:bg-slate-100 transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-white"
                       >
                         <Eye className="w-3.5 h-3.5" />
                         {t('documentsRegistry.preview')}

@@ -4,6 +4,7 @@ import { ThemeToggle } from './ThemeToggle';
 import { LanguageToggle } from './LanguageToggle';
 import { useLanguage } from '../i18n';
 import { CURRENT_USER, DemoNotification, NotificationKind, getNotifications } from '../data/demo';
+import { useDemoDecisions } from '../state/DemoDecisions';
 
 interface TopHeaderProps {
   demoMode: boolean;
@@ -27,7 +28,12 @@ export const TopHeader: React.FC<TopHeaderProps> = ({
   onViewAllNotifications,
 }) => {
   const { lang, t } = useLanguage();
-  const notifications = useMemo(() => getNotifications(lang), [lang]);
+  const { resolved } = useDemoDecisions();
+  // Decision notifications disappear once the decision has been taken
+  const notifications = useMemo(
+    () => getNotifications(lang).filter((n) => !(n.group === 'decision' && resolved.includes(n.code))),
+    [lang, resolved]
+  );
   const [isOpen, setIsOpen] = useState(false);
   const [tab, setTab] = useState<'decision' | 'info'>('decision');
   const [readIds, setReadIds] = useState<Set<string>>(() => new Set());

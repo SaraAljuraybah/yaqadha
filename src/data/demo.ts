@@ -152,10 +152,11 @@ const localizedPendingDecisions: Localizable<PendingDecision>[] = [
 export const getPendingDecisions = (lang: Lang): PendingDecision[] =>
   localize<PendingDecision[]>(localizedPendingDecisions, lang);
 
-/** Whole hours the oldest pending item has been waiting at the demo "now". */
-export const oldestPendingHours = (): number => {
+/** Whole hours the oldest of the given pending items has been waiting at the demo "now" (null when none). */
+export const oldestPendingHours = (items: { receivedAt: string }[]): number | null => {
+  if (items.length === 0) return null;
   const now = new Date(DEMO_NOW.isoDateTime).getTime();
-  const oldest = Math.min(...localizedPendingDecisions.map((d) => new Date(d.receivedAt as string).getTime()));
+  const oldest = Math.min(...items.map((d) => new Date(d.receivedAt).getTime()));
   return Math.floor((now - oldest) / 3_600_000);
 };
 
@@ -230,6 +231,8 @@ export const DEMO_STATS = {
 // ----------------------------------------------------------------------------
 export type RegisterStatus = 'suspended' | 'under_review' | 'pending_approval' | 'approved';
 export type Severity = 'high' | 'medium' | 'low';
+/** Visual state of each approval stage: done (green), bypassed (red), requested/current (amber), pending (grey). */
+export type StageState = 'done' | 'bypassed' | 'requested' | 'current' | 'pending';
 
 export interface RegisterDocument {
   /** Code without the leading '#', e.g. "YQ-8841" */
@@ -243,8 +246,12 @@ export interface RegisterDocument {
   /** Creation date (ISO, yyyy-mm-dd) — used by the date filter */
   createdIso: string;
   severity: Severity;
+  /** Explicit per-stage states when the path is irregular (otherwise derived from currentStage) */
+  stages?: StageState[];
   /** Id of the detailed dossier (only some documents have one) */
   dossierId?: string;
+  /** Whether a detail page exists for "Preview" (the case page, the approvals page or a document page) */
+  hasDetailPage: boolean;
 }
 
 const localizedRegister: Localizable<RegisterDocument>[] = [
@@ -258,7 +265,9 @@ const localizedRegister: Localizable<RegisterDocument>[] = [
     totalStages: 4,
     createdIso: '2026-11-08',
     severity: 'high',
+    stages: ['done', 'bypassed', 'bypassed', 'requested'],
     dossierId: 'doc-1',
+    hasDetailPage: true,
   },
   {
     code: 'YQ-8841',
@@ -271,6 +280,7 @@ const localizedRegister: Localizable<RegisterDocument>[] = [
     createdIso: '2026-11-02',
     severity: 'medium',
     dossierId: 'doc-2',
+    hasDetailPage: true,
   },
   {
     code: 'PO-3310',
@@ -282,6 +292,7 @@ const localizedRegister: Localizable<RegisterDocument>[] = [
     totalStages: 3,
     createdIso: '2026-11-06',
     severity: 'medium',
+    hasDetailPage: true, // its exception request is on the approvals page
   },
   {
     code: 'CT-2207',
@@ -293,6 +304,7 @@ const localizedRegister: Localizable<RegisterDocument>[] = [
     totalStages: 4,
     createdIso: '2026-10-20',
     severity: 'low',
+    hasDetailPage: false, // waits for the final approver; no detail page in the demo
   },
   {
     code: 'BG-2026',
@@ -305,6 +317,7 @@ const localizedRegister: Localizable<RegisterDocument>[] = [
     createdIso: '2026-11-02',
     severity: 'low',
     dossierId: 'doc-3',
+    hasDetailPage: true,
   },
   {
     code: 'CL-0915',
@@ -317,6 +330,7 @@ const localizedRegister: Localizable<RegisterDocument>[] = [
     createdIso: '2026-09-08',
     severity: 'low',
     dossierId: 'doc-4',
+    hasDetailPage: true,
   },
 ];
 
@@ -455,39 +469,19 @@ export const CASE_FILE = {
   dateLabel: { ar: '8 نوفمبر 2026', en: '8 November 2026' },
 };
 
-export interface ReviewerNote {
-  id: string;
-  author: string;
-  time: string;
-  text: string;
-}
-
-const localizedInitialNotes: Localizable<ReviewerNote>[] = [
-  {
-    id: 'note-1',
-    author: PEOPLE.fahad.name,
-    time: { ar: '08:15 ص', en: '08:15 AM' },
-    text: join(
-      { ar: 'طلبت إفادة من ', en: 'I requested a statement from ' },
-      PEOPLE.ahmed.name,
-      { ar: ' عن سبب النشر المباشر قبل اكتمال المراجعات.', en: ' on why the booklet was published directly before the reviews were complete.' }
-    ),
-  },
-];
-
-export const getInitialReviewerNotes = (lang: Lang): ReviewerNote[] =>
-  localize<ReviewerNote[]>(localizedInitialNotes, lang);
-
 // ----------------------------------------------------------------------------
 // 11. DOC-2026-01 detected violations (each with its legal basis)
 // ----------------------------------------------------------------------------
 export const CASE_VIOLATIONS: { text: LocalizedText; reference: LegalReferenceId }[] = [
   {
-    text: { ar: 'توقيع منفرد وتخطي 3 مستويات رقابية إلزامية', en: 'Single signature bypassing 3 mandatory oversight levels' },
+    text: {
+      ar: 'توقيع منفرد وتجاوز مرحلتين رقابيتين إلزاميتين (القانونية والمالية)',
+      en: 'Single signature bypassing two mandatory oversight stages (legal and financial)',
+    },
     reference: 'governanceArt43',
   },
   {
-    text: { ar: 'طلب نشر الكراسة دون اعتماد مالي وقانوني', en: 'Request to publish the booklet without financial and legal approval' },
+    text: { ar: 'محاولة نشر الكراسة دون الاعتماد النهائي', en: 'Attempt to publish the booklet without the final approval' },
     reference: 'internalGovernancePolicy',
   },
   {
@@ -642,6 +636,152 @@ const localizedUsers: Localizable<UserAccount>[] = [
 ];
 
 export const getUsers = (lang: Lang): UserAccount[] => localize<UserAccount[]>(localizedUsers, lang);
+
+
+// ----------------------------------------------------------------------------
+// 13b. Approval requests (YQ-8841 urgent approval, PO-3310 justified exception)
+// ----------------------------------------------------------------------------
+export type ChecklistState = 'done' | 'waiting' | 'locked';
+
+export interface ReadinessCheck {
+  id: string;
+  title: string;
+  detail: string;
+  state: ChecklistState;
+}
+
+/** Readiness checks for YQ-8841 before final approval (5 of 8 complete). */
+const localizedReadiness: Localizable<ReadinessCheck>[] = [
+  {
+    id: 'order',
+    title: { ar: 'ترتيب التوقيعات مكتمل', en: 'Signature order is complete' },
+    detail: { ar: 'المُعد ثم المراجعة القانونية بالتسلسل الصحيح', en: 'Preparer, then legal review, in the correct order' },
+    state: 'done',
+  },
+  {
+    id: 'attachments',
+    title: { ar: 'المرفقات الإلزامية موجودة', en: 'Mandatory attachments are present' },
+    detail: { ar: 'مذكرة المراجعة القانونية وتأكيد توفر الميزانية', en: 'Legal review memo and budget availability confirmation' },
+    state: 'done',
+  },
+  {
+    id: 'conflict',
+    title: { ar: 'لا يوجد تعارض مصالح', en: 'No conflict of interest' },
+    detail: { ar: 'لا علاقة بين الموقّعين والمورد', en: 'No relationship between the signatories and the supplier' },
+    state: 'done',
+  },
+  {
+    id: 'watermark',
+    title: { ar: 'العلامة المائية مفعّلة', en: 'Watermark is enabled' },
+    detail: { ar: 'كل اطلاع موثّق باسم صاحبه ووقته', en: 'Every view is recorded with the viewer’s name and time' },
+    state: 'done',
+  },
+  {
+    id: 'reading_time',
+    title: { ar: 'مدة الاطلاع غير كافية', en: 'Insufficient reading time' },
+    detail: join(PEOPLE.salman.name, { ar: ' (بالتفويض) وقّع 38 صفحة خلال 12 ثانية', en: ' (delegated) signed 38 pages in 12 seconds' }),
+    state: 'waiting',
+  },
+  {
+    id: 'exception',
+    title: { ar: 'طلب استثناء مبرّر', en: 'Justified exception request' },
+    detail: { ar: 'لا يوجد طلب تجاوز لهذا المستند', en: 'No skip request for this document' },
+    state: 'done',
+  },
+  {
+    id: 'manager',
+    title: { ar: 'موافقة المدير المباشر', en: 'Direct manager approval' },
+    detail: { ar: 'بانتظار قرارك على تنبيه الاعتماد المستعجل', en: 'Awaiting your decision on the urgent-approval alert' },
+    state: 'waiting',
+  },
+  {
+    id: 'final_signature',
+    title: { ar: 'التوقيع النهائي', en: 'Final signature' },
+    detail: { ar: 'يتفعّل بعد اكتمال كل الفحوصات', en: 'Enabled once all checks are complete' },
+    state: 'locked',
+  },
+];
+
+export const getReadinessChecks = (lang: Lang): ReadinessCheck[] => localize<ReadinessCheck[]>(localizedReadiness, lang);
+
+export const URGENT_APPROVAL = {
+  code: 'YQ-8841',
+  dossierId: 'doc-2',
+  pages: 38,
+  readingSeconds: 12,
+  /** About 30 seconds per page */
+  expectedMinutes: 19,
+  /** Watermark shown on the preview: viewer, time and device address */
+  watermark: { viewer: PEOPLE.fahad.name, at: '2026-11-08 10:42', ip: '10.4.2.18' },
+};
+
+export const EXCEPTION_REQUEST = {
+  code: 'PO-3310',
+  title: { ar: 'أمر شراء خوادم احتياطية', en: 'Purchase Order for Backup Servers' },
+  stageToSkip: { ar: 'المراجعة المالية', en: 'Financial review' },
+  requester: PEOPLE.salman.name,
+  reason: {
+    ar: 'عطل في الخادم الرئيسي يهدد استمرارية الخدمة، وتُستكمل المراجعة المالية لاحقًا خلال 48 ساعة.',
+    en: 'A failure in the main server threatens service continuity; the financial review will be completed within 48 hours.',
+  },
+};
+
+// ----------------------------------------------------------------------------
+// 13c. Decisions taken in this session (in memory) and what they change
+// ----------------------------------------------------------------------------
+export type CaseOutcome = 'lifted' | 'escalated';
+export type RequestOutcome = 'approved' | 'rejected';
+
+export interface DemoDecisions {
+  /** DOC-2026-01 */
+  case?: CaseOutcome;
+  /** YQ-8841 urgent approval */
+  urgent?: RequestOutcome;
+  /** PO-3310 justified exception */
+  exception?: RequestOutcome;
+}
+
+/** Codes whose pending decision has been taken. */
+export const resolvedCodes = (d: DemoDecisions): string[] => [
+  ...(d.case ? [CASE_FILE.code] : []),
+  ...(d.urgent ? [URGENT_APPROVAL.code] : []),
+  ...(d.exception ? [EXCEPTION_REQUEST.code] : []),
+];
+
+/** Headline counts after the session's decisions. */
+export const deriveStats = (d: DemoDecisions) => {
+  const resolved = resolvedCodes(d);
+  const lifted = d.case === 'lifted';
+  return {
+    ...DEMO_STATS,
+    // A lifted suspension returns the document to review
+    suspended: DEMO_STATS.suspended - (lifted ? 1 : 0),
+    underReview: DEMO_STATS.underReview + (lifted ? 1 : 0),
+    awaitingDecision: localizedPendingDecisions.filter((p) => !resolved.includes(p.code as string)).length,
+    suspendedAwaitingDecision: d.case ? 0 : DEMO_STATS.suspendedAwaitingDecision,
+    // The two active alerts are DOC-2026-01 (single signature) and YQ-8841 (urgent approval)
+    activeAlerts: [CASE_FILE.code, URGENT_APPROVAL.code].filter((code) => !resolved.includes(code)).length,
+  };
+};
+
+/** Registry rows after the session's decisions. */
+export const applyDecisionsToRegister = (rows: RegisterDocument[], d: DemoDecisions): RegisterDocument[] =>
+  rows.map((row) => {
+    if (row.code === CASE_FILE.code && d.case === 'lifted') {
+      // Back to the legal review stage
+      return { ...row, status: 'under_review', currentStage: 2, stages: undefined };
+    }
+    if (row.code === URGENT_APPROVAL.code && d.urgent) {
+      return d.urgent === 'approved'
+        ? { ...row, status: 'pending_approval', currentStage: 4 }
+        : { ...row, status: 'under_review', currentStage: 1 };
+    }
+    if (row.code === EXCEPTION_REQUEST.code && d.exception === 'approved') {
+      // Financial review skipped as a recorded exception; moves to final approval
+      return { ...row, status: 'pending_approval', currentStage: 3, stages: ['done', 'bypassed', 'current'] };
+    }
+    return row;
+  });
 
 // ----------------------------------------------------------------------------
 // 14. Detailed document dossiers (DOC-2026-01, YQ-8841, BG-2026, CL-0915)
@@ -820,7 +960,10 @@ const localizedDocuments: Localizable<DocumentDossier>[] = [
         ip: '192.168.10.45',
         device: { ar: 'محطة العمل 02 عبر VPN', en: 'Workstation 02 via VPN' },
         isFlagged: true,
-        flagReason: { ar: 'توقيع منفرد وتخطي 3 مستويات رقابية إلزامية', en: 'Single signature bypassing 3 mandatory oversight levels' },
+        flagReason: {
+          ar: 'توقيع منفرد وتجاوز مرحلتين رقابيتين إلزاميتين (القانونية والمالية)',
+          en: 'Single signature bypassing two mandatory oversight stages (legal and financial)',
+        },
         hashVerified: false,
       },
     ],
@@ -890,7 +1033,7 @@ const localizedDocuments: Localizable<DocumentDossier>[] = [
           en: 'Yaqadha detected unjustified acceleration and an attempt to publish the Terms & Specifications Booklet for the Technical Expansion Project (#DOC-2026-01) with a single signature from the preparer, ',
         },
         PEOPLE.ahmed.name,
-        { ar: '، مع تخطي 3 مستويات رقابية إلزامية.', en: ', bypassing 3 mandatory oversight levels.' }
+        { ar: '، متجاوزًا مرحلتي المراجعة القانونية والمالية الإلزاميتين.', en: ', bypassing the mandatory legal and financial reviews.' }
       ),
       detectedConflicts: [
         {
