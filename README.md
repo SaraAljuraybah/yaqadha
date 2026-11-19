@@ -37,8 +37,8 @@ npm install
 Create `.env` locally (copy `.env.example`). Do not commit it:
 
 ```bash
-YAQADHA_API_BASE_URL=https://your-render-model-service.example.com
-YAQADHA_API_KEY=your-private-model-api-key
+RISK_API_URL=https://your-render-model-service.example.com
+RISK_API_KEY=your-private-model-api-key
 GEMINI_API_KEY=optional-gemini-key
 ```
 
@@ -63,8 +63,8 @@ Server-only variables:
 
 | Variable | Required | Description |
 | --- | --- | --- |
-| `YAQADHA_API_BASE_URL` | Yes | Base URL for the private Render risk model API. |
-| `YAQADHA_API_KEY` | Yes | API key sent server-side to the private risk model. |
+| `RISK_API_URL` | Yes | Base URL for the private Render risk model API. |
+| `RISK_API_KEY` | Yes | API key sent server-side to the private risk model. |
 | `GEMINI_API_KEY` | No | Enables Gemini analysis for `/api/audit/ai-analyze`; without it, the local rule engine is used. |
 
 Do not prefix secrets with `VITE_`. Vite exposes `VITE_*` values to the client bundle.
@@ -74,8 +74,8 @@ Do not prefix secrets with `VITE_`. Vite exposes `VITE_*` values to the client b
 1. Import this repository into Vercel.
 2. Keep the default project framework as Vite, or use the included `vercel.json`.
 3. Set these Vercel environment variables:
-   - `YAQADHA_API_BASE_URL`
-   - `YAQADHA_API_KEY`
+   - `RISK_API_URL`
+   - `RISK_API_KEY`
    - Optional: `GEMINI_API_KEY`
 4. Deploy.
 

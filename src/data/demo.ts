@@ -27,6 +27,10 @@ export const DEMO_NOW = {
 // ----------------------------------------------------------------------------
 // 2. Legal references — every regulation/policy cited anywhere in the platform.
 //    These are demo references and must be verified before any real use.
+//    Risk model v1.1 (Yaqadha-Procurement-IF-v1.1, configuration 2.0), checked on 2026-11-19: its responses carry
+//    no legal-basis field and cite no article or regulation. Its 8 governance rules (PROC_SPLIT, PROC_PRICE,
+//    PROC_CONCENTRATION, PROC_COMPETITION, PROC_NEW_VENDOR, PROC_AMENDMENT, PROC_RUSHED, PROC_DIRECT_AWARD)
+//    return titles and observed values only. The old v1.0 returned a legal_basis per triggered rule.
 // ----------------------------------------------------------------------------
 export const LEGAL_REFERENCES = {
   /**
@@ -499,6 +503,8 @@ export interface DelegablePermission {
   scope: LocalizedText;
   /** Short label used on the delegate's access-level pill, e.g. "Budget approval" */
   short: LocalizedText;
+  /** Monetary cap of the delegated authority, in SAR (when it has one) */
+  limitSar?: number;
 }
 
 export const DELEGABLE_PERMISSIONS: DelegablePermission[] = [
@@ -506,6 +512,7 @@ export const DELEGABLE_PERMISSIONS: DelegablePermission[] = [
     id: 'budget_500k',
     scope: { ar: 'اعتماد الميزانيات والصرف حتى 500 ألف ريال', en: 'Budget and disbursement approval up to SAR 500,000' },
     short: { ar: 'اعتماد الميزانيات', en: 'Budget approval' },
+    limitSar: 500_000,
   },
   {
     id: 'legal_review',
@@ -601,7 +608,7 @@ const localizedUsers: Localizable<UserAccount>[] = [
     role: CURRENT_USER.role,
     department: { ar: 'أمانة الرقابة والحوكمة', en: 'Oversight & Governance Secretariat' },
     accessLevel: 'full_audit',
-    accessLevelLabel: { ar: 'رقابة كاملة وتجميد وثائق', en: 'Full oversight & document freezing' },
+    accessLevelLabel: { ar: 'رقابة كاملة وتعليق احترازي للوثائق', en: 'Full oversight & precautionary document suspension' },
     twoFactor: true,
     status: 'active',
   },
@@ -703,7 +710,7 @@ export const getUsers = (lang: Lang): UserAccount[] => localize<UserAccount[]>(l
 // ----------------------------------------------------------------------------
 // 13b. Approval requests (YQ-8841 urgent approval, PO-3310 justified exception)
 // ----------------------------------------------------------------------------
-export type ChecklistState = 'done' | 'waiting' | 'locked';
+export type ChecklistState = 'done' | 'waiting' | 'locked' | 'failed';
 
 export interface ReadinessCheck {
   id: string;
@@ -712,7 +719,7 @@ export interface ReadinessCheck {
   state: ChecklistState;
 }
 
-/** Readiness checks for YQ-8841 before final approval (5 of 8 complete). */
+/** Readiness checks for YQ-8841 before final approval (5 of 9 complete). */
 const localizedReadiness: Localizable<ReadinessCheck>[] = [
   {
     id: 'order',
@@ -745,6 +752,13 @@ const localizedReadiness: Localizable<ReadinessCheck>[] = [
     state: 'waiting',
   },
   {
+    // Detail text is built on the page from URGENT_APPROVAL.contractValueSar and the delegation's limit
+    id: 'delegation_limit',
+    title: { ar: 'تجاوز حد التفويض', en: 'Delegation limit exceeded' },
+    detail: '',
+    state: 'failed',
+  },
+  {
     id: 'exception',
     title: { ar: 'طلب استثناء مبرّر', en: 'Justified exception request' },
     detail: { ar: 'لا يوجد طلب تجاوز لهذا المستند', en: 'No skip request for this document' },
@@ -769,6 +783,10 @@ export const getReadinessChecks = (lang: Lang): ReadinessCheck[] => localize<Rea
 export const URGENT_APPROVAL = {
   code: 'YQ-8841',
   dossierId: 'doc-2',
+  /** Contract value — same figure as the dossier budget (SAR 1,240,000) */
+  contractValueSar: 1_240_000,
+  /** The delegation under which the finance stage was signed */
+  delegationId: 'del-1',
   pages: 38,
   readingSeconds: 12,
   /** About 30 seconds per page */
@@ -833,10 +851,9 @@ export const applyDecisionsToRegister = (rows: RegisterDocument[], d: DemoDecisi
       // Back to the legal review stage
       return { ...row, status: 'under_review', currentStage: 2, stages: undefined };
     }
-    if (row.code === URGENT_APPROVAL.code && d.urgent) {
-      return d.urgent === 'approved'
-        ? { ...row, status: 'pending_approval', currentStage: 4 }
-        : { ...row, status: 'under_review', currentStage: 1 };
+    if (row.code === URGENT_APPROVAL.code && d.urgent === 'rejected') {
+      // Returned to the preparer. An approval keeps it at the financial stage: the delegation overrun still blocks it
+      return { ...row, status: 'under_review', currentStage: 1 };
     }
     if (row.code === EXCEPTION_REQUEST.code && d.exception === 'approved') {
       // Financial review skipped as a recorded exception; moves to final approval

@@ -80,12 +80,13 @@ const riskError = (status: number, code: RiskErrorCode, message: string) => ({
  * Never logs request bodies, evidence text, or the key: only paths, status codes, and error kinds.
  */
 async function callRiskApi(apiPath: string, init: { method: "GET" | "POST"; body?: string }) {
-  const baseUrl = process.env.YAQADHA_API_BASE_URL?.trim().replace(/\/+$/, "");
-  const apiKey = process.env.YAQADHA_API_KEY?.trim();
+  // Base URL of the risk model (e.g. https://yaqadha-api-v1-1.onrender.com) and its key — server-side only
+  const baseUrl = process.env.RISK_API_URL?.trim().replace(/\/+$/, "");
+  const apiKey = process.env.RISK_API_KEY?.trim();
 
   if (!baseUrl || !apiKey) {
-    console.error(`[risk] ${apiPath}: YAQADHA_API_BASE_URL or YAQADHA_API_KEY is not set`);
-    return riskError(503, "not_configured", "The risk model is not configured on the server (missing YAQADHA_API_BASE_URL or YAQADHA_API_KEY).");
+    console.error(`[risk] ${apiPath}: RISK_API_URL or RISK_API_KEY is not set`);
+    return riskError(503, "not_configured", "The risk model is not configured on the server (missing RISK_API_URL or RISK_API_KEY).");
   }
 
   let upstream: Response;

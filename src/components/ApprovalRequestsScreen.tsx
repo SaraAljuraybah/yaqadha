@@ -4,12 +4,15 @@ import { TranslationKey, useLanguage } from '../i18n';
 import {
   DEPARTMENTS,
   CURRENT_USER,
+  DELEGABLE_PERMISSIONS,
   EXCEPTION_REQUEST,
+  INITIAL_DELEGATIONS,
   PEOPLE,
   ReadinessCheck,
   URGENT_APPROVAL,
   getDocuments,
   getReadinessChecks,
+  formatDateRange,
   getRegisterDocuments,
 } from '../data/demo';
 import { useDemoDecisions } from '../state/DemoDecisions';
@@ -68,6 +71,7 @@ const checkVisual: Record<CheckState, { icon: LucideIcon; tone: string }> = {
   waiting: { icon: Clock, tone: 'bg-amber-50 text-amber-600 border-amber-200' },
   locked: { icon: Lock, tone: 'bg-slate-50 text-slate-400 border-slate-200' },
   rejected: { icon: X, tone: 'bg-red-50 text-red-600 border-red-200' },
+  failed: { icon: X, tone: 'bg-red-50 text-red-600 border-red-200' },
 };
 
 const ReadinessRing: React.FC<{ done: number; total: number; label: string }> = ({ done, total, label }) => {
@@ -124,13 +128,19 @@ const WatermarkedPreview: React.FC<{ title: string; meta: string; watermark: str
 
 // ---- decision card shell ---------------------------------------------------------------
 
-const DecisionOutcome: React.FC<{ approved: boolean; title: string; comment?: string; commentLabel: string }> = ({ approved, title, comment, commentLabel }) => (
-  <div
-    className={`rounded-xl border p-4 space-y-1.5 ${approved ? 'border-emerald-200 bg-emerald-50/60' : 'border-red-200 bg-red-50/60'}`}
-    role="status"
-  >
-    <div className={`flex items-center gap-2 text-sm font-bold ${approved ? 'text-emerald-700' : 'text-red-700'}`}>
-      {approved ? <CheckCircle2 className="w-4 h-4" /> : <XCircle className="w-4 h-4" />}
+const outcomeTone = {
+  green: { box: 'border-emerald-200 bg-emerald-50/60', text: 'text-emerald-700', icon: CheckCircle2 },
+  amber: { box: 'border-amber-200 bg-amber-50/60', text: 'text-amber-800', icon: CheckCircle2 },
+  red: { box: 'border-red-200 bg-red-50/60', text: 'text-red-700', icon: XCircle },
+};
+
+const DecisionOutcome: React.FC<{ tone: keyof typeof outcomeTone; title: string; comment?: string; commentLabel: string }> = ({ tone, title, comment, commentLabel }) => {
+  const v = outcomeTone[tone];
+  const Icon = v.icon;
+  return (
+  <div className={`rounded-xl border p-4 space-y-1.5 ${v.box}`} role="status">
+    <div className={`flex items-start gap-2 text-sm font-bold ${v.text}`}>
+      <Icon className="w-4 h-4 shrink-0 mt-0.5" />
       {title}
     </div>
     {comment && (
@@ -140,13 +150,14 @@ const DecisionOutcome: React.FC<{ approved: boolean; title: string; comment?: st
       </p>
     )}
   </div>
-);
+  );
+};
 
 // ---- screen ------------------------------------------------------------------------------
 
 export const ApprovalRequestsScreen: React.FC<ApprovalRequestsScreenProps> = ({ focusCode }) => {
   const { lang, t } = useLanguage();
-  const { decisions, requestComments, decideRequest } = useDemoDecisions();
+  const { decisions, requestComments, decideRequest, delegations } = useDemoDecisions();
   const [urgentComment, setUrgentComment] = useState('');
   const [exceptionComment, setExceptionComment] = useState('');
 
@@ -166,21 +177,32 @@ export const ApprovalRequestsScreen: React.FC<ApprovalRequestsScreenProps> = ({ 
   const urgent = decisions.urgent;
   const exception = decisions.exception;
 
-  // Stage states follow the manager's decision on the urgent approval
+  // Stage states: a rejection returns the request to the preparer. An approval keeps the financial stage
+  // current, because the delegation overrun still requires a signature within the authority's limit.
   const chainStates: ChainState[] =
-    urgent === 'approved'
-      ? ['done', 'done', 'done', 'current']
-      : urgent === 'rejected'
-      ? ['returned', 'pending', 'pending', 'pending']
-      : ['done', 'done', 'current', 'pending'];
+    urgent === 'rejected' ? ['returned', 'pending', 'pending', 'pending'] : ['done', 'done', 'current', 'pending'];
 
-  // Readiness checks after the decision
+  // Delegation overrun: contract value vs the delegated limit (both from the central data)
+  const delegation = delegations.find((d) => d.id === URGENT_APPROVAL.delegationId) ?? INITIAL_DELEGATIONS[0];
+  const delegatedLimit = DELEGABLE_PERMISSIONS.find((p) => p.id === delegation.permissionId)?.limitSar ?? 0;
+  const formatSar = (n: number) => n.toLocaleString('en-US');
+  const limitDetail = t('approvals.delegationLimitDetail', {
+    value: formatSar(URGENT_APPROVAL.contractValueSar),
+    limit: formatSar(delegatedLimit),
+  });
+  const limitEvidence = t('approvals.delegationLimitEvidence', {
+    from: PEOPLE.tariq.name[lang],
+    to: PEOPLE.salman.name[lang],
+    period: formatDateRange(delegation.startIso, delegation.endIso, lang),
+  });
+
+  // Readiness checks after the decision.
   // A human decision is recorded alongside the evidence and never erases it: the failed reading-time check keeps
   // its state and colour, gets an "accepted as exception" label, and is not counted toward readiness.
-  const checks: (Omit<ReadinessCheck, 'state'> & { state: CheckState; acceptedException?: boolean })[] = baseChecks.map((check) => {
+  const checks: (Omit<ReadinessCheck, 'state'> & { state: CheckState; acceptedException?: boolean; evidence?: string })[] = baseChecks.map((check) => {
+    if (check.id === 'delegation_limit') return { ...check, detail: limitDetail, evidence: limitEvidence };
     if (urgent === 'approved' && check.id === 'reading_time') return { ...check, acceptedException: true };
     if (urgent === 'approved' && check.id === 'manager') return { ...check, state: 'done', detail: t('approvals.managerApproved') };
-    if (urgent === 'approved' && check.id === 'final_signature') return { ...check, state: 'waiting', detail: t('approvals.finalSignatureWaiting', { name: PEOPLE.abdullah.name[lang] }) };
     if (urgent === 'rejected' && check.id === 'manager') return { ...check, state: 'rejected', detail: t('approvals.managerRejected') };
     return check;
   });
@@ -190,9 +212,7 @@ export const ApprovalRequestsScreen: React.FC<ApprovalRequestsScreenProps> = ({ 
   const remaining = checks.filter((c) => c.id !== 'final_signature' && c.state !== 'done' && !c.acceptedException).length;
 
   const statusBadge =
-    urgent === 'approved'
-      ? { label: t('common.pendingApproval'), cls: 'bg-sky-50 text-sky-800 border-sky-200 dark:bg-[#0F1C24] dark:text-sky-300 dark:border-[#1E3442]', dot: 'bg-sky-500' }
-      : urgent === 'rejected'
+    urgent === 'rejected'
       ? { label: t('approvals.returnedBadge'), cls: 'bg-red-50 text-red-700 border-red-200', dot: 'bg-red-500' }
       : { label: t('common.underReview'), cls: 'bg-amber-50 text-amber-800 border-amber-200', dot: 'bg-amber-500' };
 
@@ -200,13 +220,13 @@ export const ApprovalRequestsScreen: React.FC<ApprovalRequestsScreenProps> = ({ 
     urgent === 'rejected'
       ? t('approvals.readinessReturned')
       : remaining === 0
-      ? t(acceptedExceptions > 0 ? 'approvals.readinessAwaitingFinalWithException' : 'approvals.readinessAwaitingFinal')
+      ? t('approvals.readinessAwaitingFinal')
       : t('approvals.readinessNotReady');
   const readinessDetail =
     urgent === 'rejected'
       ? t('approvals.readinessReturnedDetail')
       : remaining === 0
-      ? t(acceptedExceptions > 0 ? 'approvals.remainingNoneWithException' : 'approvals.remainingNone')
+      ? t('approvals.remainingNone')
       : remaining === 1
       ? t('approvals.remainingOne')
       : remaining === 2
@@ -296,6 +316,7 @@ export const ApprovalRequestsScreen: React.FC<ApprovalRequestsScreenProps> = ({ 
                   <div className="min-w-0">
                     <div className="text-sm font-bold text-slate-900">{check.title}</div>
                     <div className="text-xs text-slate-500 mt-0.5">{check.detail}</div>
+                    {check.evidence && <div className="text-[11px] text-slate-400 mt-0.5">{check.evidence}</div>}
                     {check.acceptedException && (
                       <div className="mt-1.5 space-y-1">
                         <span className="inline-flex items-center px-2 py-0.5 rounded-full border border-amber-300 bg-amber-50 text-[11px] font-bold text-amber-800">
@@ -322,7 +343,7 @@ export const ApprovalRequestsScreen: React.FC<ApprovalRequestsScreenProps> = ({ 
             className="w-full inline-flex items-center justify-center gap-2 h-11 rounded-xl border border-slate-200 bg-slate-50 text-sm font-bold text-slate-400 cursor-not-allowed"
           >
             <Lock className="w-4 h-4" />
-            {urgent === 'approved' ? t('approvals.finalApprovalWaiting', { name: PEOPLE.abdullah.name[lang] }) : t('approvals.finalApproval')}
+            {t('approvals.finalApproval')}
           </button>
         </section>
 
@@ -359,10 +380,28 @@ export const ApprovalRequestsScreen: React.FC<ApprovalRequestsScreenProps> = ({ 
             </div>
           </div>
 
+          <div className="rounded-xl border border-red-200 bg-red-50/60 p-4 space-y-2" id="delegation-limit-alert">
+            <div className="flex items-center gap-2 text-sm font-bold text-red-700">
+              <X className="w-4 h-4" />
+              {t('approvals.delegationLimitTitle')}
+            </div>
+            <div className="grid grid-cols-2 gap-3 text-sm">
+              <div>
+                <div className="text-xs text-slate-500">{t('approvals.contractValueLabel')}</div>
+                <div className="font-bold text-slate-900" dir="ltr">{formatSar(URGENT_APPROVAL.contractValueSar)}</div>
+              </div>
+              <div>
+                <div className="text-xs text-slate-500">{t('approvals.delegatedLimitLabel')}</div>
+                <div className="font-bold text-slate-900" dir="ltr">{formatSar(delegatedLimit)}</div>
+              </div>
+            </div>
+            <div className="text-[11px] text-slate-500">{limitEvidence}</div>
+          </div>
+
           {urgent ? (
             <DecisionOutcome
-              approved={urgent === 'approved'}
-              title={t(urgent === 'approved' ? 'approvals.urgentApprovedOutcome' : 'approvals.urgentRejectedOutcome')}
+              tone={urgent === 'approved' ? 'amber' : 'red'}
+              title={t(urgent === 'approved' ? 'approvals.urgentApprovedBlocked' : 'approvals.urgentRejectedOutcome')}
               comment={requestComments.urgent}
               commentLabel={t('approvals.yourComment')}
             />
@@ -432,7 +471,7 @@ export const ApprovalRequestsScreen: React.FC<ApprovalRequestsScreenProps> = ({ 
 
           {exception ? (
             <DecisionOutcome
-              approved={exception === 'approved'}
+              tone={exception === 'approved' ? 'green' : 'red'}
               title={t(exception === 'approved' ? 'approvals.exceptionApprovedOutcome' : 'approvals.exceptionRejectedOutcome')}
               comment={requestComments.exception}
               commentLabel={t('approvals.yourComment')}

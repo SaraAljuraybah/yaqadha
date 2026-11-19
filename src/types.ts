@@ -188,3 +188,87 @@ export type ActiveScreen =
   | 'executive_dashboard'
   | 'access_management'
   | 'tender_risk_assessment';
+
+// ---- Yaqadha Procurement Risk API v1.1 (Yaqadha-Procurement-IF-v1.1, configuration 2.0) ----
+// Contract observed from the model's /openapi.json and sample responses (Nov 2026). Not wired into the UI yet:
+// the UI still uses RiskEvaluationInput / RiskEvaluationResult above until the results stage is rebuilt.
+
+/** All fields are optional; unknown fields are rejected with 422. Only the ones the platform is likely to send are listed. */
+export interface RiskRequestV11 {
+  record_id?: string;
+  tender_id?: string;
+  item_category?: string;
+  tender_value_sar?: number;
+  items_count?: number;
+  bids_count?: number;
+  competitors_count?: number;
+  prior_awards_count?: number;
+  winning_suppliers_count?: number;
+  documents_count?: number;
+  submission_period_days?: number;
+  contract_value?: number;
+  evaluation_duration_days?: number;
+  [field: string]: string | number | boolean | undefined;
+}
+
+export interface RiskTopFactorV11 {
+  factor_ar: string;
+  factor_en: string;
+  points: number;
+  compared_to_usual_ar: string;
+  compared_to_usual_en: string;
+  source: string;
+  points_note_ar: string;
+  points_note_en: string;
+}
+
+export interface RiskTriggeredRuleV11 {
+  rule_id: string;
+  indicator: string;
+  title_ar: string;
+  title_en: string;
+  severity: string;
+  impact_level: number;
+  strength: number;
+  observed_ar: string;
+  observed_en: string;
+  critical_override: boolean;
+}
+
+export interface RiskSimilarTendersV11 {
+  category: string;
+  reference_count: number;
+  share_below_percent: number;
+  record_value_sar: number;
+  distribution_sar: { p10: number; p25: number; median: number; p75: number; p90: number };
+  summary_ar: string;
+  summary_en: string;
+}
+
+export interface RiskResultV11 {
+  record_id: string;
+  model_version: string;
+  configuration_version: string;
+  assessment_status: 'completed' | 'insufficient_data' | string;
+  /** null when assessment_status is "insufficient_data" */
+  risk_score: number | null;
+  risk_color: 'Green' | 'Yellow' | 'Red' | null;
+  review_required: boolean;
+  recommended_action_ar: string;
+  recommended_action_en: string;
+  processing_time_ms: number;
+  // Present when the assessment completed
+  critical_override?: boolean;
+  top_factors?: RiskTopFactorV11[];
+  top_factors_points_total?: number;
+  other_factors_points?: number;
+  triggered_rules?: RiskTriggeredRuleV11[];
+  similar_tender_comparison?: RiskSimilarTendersV11 | null;
+  explanation_ar?: string;
+  explanation_en?: string;
+  disclaimer_ar?: string;
+  disclaimer_en?: string;
+  audit_components?: Record<string, unknown>;
+  // Present when data is insufficient
+  missing_signal_reasons?: Record<string, string>;
+}
