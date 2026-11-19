@@ -448,6 +448,36 @@ const localizedCaseTimeline: Localizable<CaseTimelineEvent>[] = [
 export const getCaseTimeline = (lang: Lang): CaseTimelineEvent[] =>
   localize<CaseTimelineEvent[]>(localizedCaseTimeline, lang);
 
+/** Case file of DOC-2026-01 (the only suspension awaiting the current user's decision). */
+export const CASE_FILE = {
+  code: 'DOC-2026-01',
+  dossierId: 'doc-1',
+  dateLabel: { ar: '8 نوفمبر 2026', en: '8 November 2026' },
+};
+
+export interface ReviewerNote {
+  id: string;
+  author: string;
+  time: string;
+  text: string;
+}
+
+const localizedInitialNotes: Localizable<ReviewerNote>[] = [
+  {
+    id: 'note-1',
+    author: PEOPLE.fahad.name,
+    time: { ar: '08:15 ص', en: '08:15 AM' },
+    text: join(
+      { ar: 'طلبت إفادة من ', en: 'I requested a statement from ' },
+      PEOPLE.ahmed.name,
+      { ar: ' عن سبب النشر المباشر قبل اكتمال المراجعات.', en: ' on why the booklet was published directly before the reviews were complete.' }
+    ),
+  },
+];
+
+export const getInitialReviewerNotes = (lang: Lang): ReviewerNote[] =>
+  localize<ReviewerNote[]>(localizedInitialNotes, lang);
+
 // ----------------------------------------------------------------------------
 // 11. DOC-2026-01 detected violations (each with its legal basis)
 // ----------------------------------------------------------------------------

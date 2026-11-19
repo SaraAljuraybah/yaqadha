@@ -43,7 +43,6 @@ const NAV_ITEMS: NavItem[] = [
   {
     id: 'indicators',
     screen: 'indicators_hub',
-    alsoActiveOn: ['yellow_risk_inspection', 'red_risk_inspection'],
     label: 'sidebar.indicators',
     icon: SlidersHorizontal,
     badge: { count: DEMO_STATS.suspendedAwaitingDecision, tone: 'red', label: 'sidebar.indicatorsBadgeLabel' },

@@ -185,8 +185,6 @@ export type ActiveScreen =
   | 'approval_requests'
   | 'file_dossier' 
   | 'indicators_hub'
-  | 'yellow_risk_inspection' 
-  | 'red_risk_inspection' 
   | 'executive_dashboard'
   | 'access_management'
   | 'tender_risk_assessment';

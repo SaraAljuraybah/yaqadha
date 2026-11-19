@@ -15,12 +15,15 @@ interface StatementRequestModalProps {
   isOpen: boolean;
   onClose: () => void;
   document: DocumentDossier;
+  /** Called once the request is sent (recorded in the case notes) */
+  onSent?: () => void;
 }
 
 export const StatementRequestModal: React.FC<StatementRequestModalProps> = ({
   isOpen,
   onClose,
   document,
+  onSent,
 }) => {
   const { t } = useLanguage();
   const [isSent, setIsSent] = useState(false);
@@ -34,6 +37,7 @@ export const StatementRequestModal: React.FC<StatementRequestModalProps> = ({
 
   const handleSendRequest = () => {
     setIsSent(true);
+    onSent?.();
   };
 
   return (
