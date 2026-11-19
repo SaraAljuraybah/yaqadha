@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { AlertTriangle, Bell, Check, Eye, ShieldCheck, Stamp, TrendingUp, LucideIcon } from 'lucide-react';
+import { AlertTriangle, Bell, Check, ChevronLeft, Eye, ShieldCheck, Stamp, TrendingUp, LucideIcon } from 'lucide-react';
 import { TranslationKey, useLanguage } from '../i18n';
 import {
   CURRENT_USER,
@@ -100,7 +100,7 @@ export const OverviewScreen: React.FC<OverviewScreenProps> = ({ onOpenDocument }
   const pending = useMemo(() => getPendingDecisions(lang).filter((p) => !resolved.includes(p.code)), [lang, resolved]);
   const alerts = useMemo(() => getLatestAlerts(lang), [lang]);
   const titles = useMemo(
-    () => Object.fromEntries(getRegisterDocuments(lang).map((d) => [d.code, d.title])) as Record<string, string>,
+    () => Object.fromEntries(getRegisterDocuments(lang).map((d) => [d.code, { full: d.title, short: d.shortTitle }])) as Record<string, { full: string; short: string }>,
     [lang]
   );
 
@@ -119,9 +119,9 @@ export const OverviewScreen: React.FC<OverviewScreenProps> = ({ onOpenDocument }
       </div>
 
       {/* Headline cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-4">
         {/* Integrity index */}
-        <div className={`${card} p-5 flex items-center gap-4 sm:col-span-2 xl:col-span-1`}>
+        <div className={`${card} p-5 flex items-center gap-4 col-span-2 xl:col-span-1`}>
           <IntegrityGauge score={stats.integrityIndex} label={t('overview.integrityAria', { score: stats.integrityIndex })} caption={t('overview.outOf100')} />
           <div className="min-w-0 space-y-1">
             <div className="text-xs text-slate-500">{t('overview.integrityTitle')}</div>
@@ -159,8 +159,8 @@ export const OverviewScreen: React.FC<OverviewScreenProps> = ({ onOpenDocument }
           </div>
         </div>
 
-        {/* Approved this month */}
-        <div className={`${card} p-5 space-y-3`}>
+        {/* Approved this month (hidden on phones, as in the mobile design) */}
+        <div className={`${card} p-5 space-y-3 hidden sm:block`}>
           <div className="flex items-center gap-2.5">
             <IconTile icon={Check} tone="bg-emerald-50 text-emerald-700 border-emerald-200" />
             <span className="text-sm text-slate-600">{t('overview.approvedMonthTitle')}</span>
@@ -183,9 +183,27 @@ export const OverviewScreen: React.FC<OverviewScreenProps> = ({ onOpenDocument }
           <ul className="space-y-2.5">
             {pending.map((item) => {
               const style = kindStyles[item.kind];
-              const title = titles[item.code] ?? item.code;
+              const title = titles[item.code]?.full ?? item.code;
+              const shortTitle = titles[item.code]?.short ?? title;
               return (
-                <li key={item.code} className="flex flex-wrap items-center justify-between gap-3 p-4 rounded-xl bg-slate-50 border border-slate-100">
+                <li key={item.code}>
+                  {/* Phone: the whole row opens the item */}
+                  <button
+                    type="button"
+                    onClick={() => onOpenDocument(item.code)}
+                    aria-label={t('overview.reviewAria', { title })}
+                    className="sm:hidden w-full flex items-center gap-3 p-4 rounded-2xl bg-white border border-slate-200 text-start"
+                  >
+                    <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${style.dot}`} aria-hidden="true" />
+                    <span className="flex-1 min-w-0">
+                      <span className="block text-sm font-bold text-slate-900 truncate">{shortTitle}</span>
+                      <span className="block text-xs text-slate-500 mt-0.5">
+                        {t(style.label)} · <bdi className="font-mono">{item.code}</bdi>
+                      </span>
+                    </span>
+                    <ChevronLeft className="w-4 h-4 text-slate-400 shrink-0 ltr:rotate-180" aria-hidden="true" />
+                  </button>
+                <div className="hidden sm:flex flex-wrap items-center justify-between gap-3 p-4 rounded-xl bg-slate-50 border border-slate-100">
                   <div className="min-w-0">
                     <div className="text-sm font-bold text-slate-900 truncate">{title}</div>
                     <div className="text-xs text-slate-500 mt-0.5">
@@ -207,6 +225,7 @@ export const OverviewScreen: React.FC<OverviewScreenProps> = ({ onOpenDocument }
                       {t('overview.review')}
                     </button>
                   </div>
+                </div>
                 </li>
               );
             })}

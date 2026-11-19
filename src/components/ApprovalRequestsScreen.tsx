@@ -272,7 +272,8 @@ export const ApprovalRequestsScreen: React.FC<ApprovalRequestsScreenProps> = ({ 
       </div>
 
       {/* Approval stages */}
-      <ol className="flex items-start" aria-label={t('approvals.stagesAria')}>
+      <div className="overflow-x-auto -mx-1 px-1">
+      <ol className="flex items-start min-w-[34rem]" aria-label={t('approvals.stagesAria')}>
         {dossier.signatureSteps.map((step, i) => {
           const state = chainStates[i];
           const v = chainVisual[state];
@@ -298,6 +299,7 @@ export const ApprovalRequestsScreen: React.FC<ApprovalRequestsScreenProps> = ({ 
           );
         })}
       </ol>
+      </div>
 
       {/* Readiness + preview */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">

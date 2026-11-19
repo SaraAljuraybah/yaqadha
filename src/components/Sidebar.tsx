@@ -77,7 +77,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeScreen, onNavigate }) =>
 
   return (
     <aside
-      className="fixed top-0 start-0 h-screen w-64 lg:w-72 bg-white border-e border-slate-200 z-40 flex flex-col select-none"
+      className="fixed top-0 start-0 h-screen w-72 bg-white border-e border-slate-200 z-40 flex flex-col select-none"
       aria-label={t('sidebar.ariaLabel')}
     >
       {/* Brand */}

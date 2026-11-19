@@ -15,7 +15,7 @@ type PanelState =
   | { kind: 'idle' }
   | { kind: 'loading' }
   | { kind: 'success'; result: RiskEvaluationResult }
-  | { kind: 'error'; code: RiskErrorCode };
+  | { kind: 'error'; code: RiskErrorCode; detail?: string };
 
 export const RiskAssessmentPanel: React.FC<RiskAssessmentPanelProps> = ({ document, belowScore }) => {
   const { t } = useLanguage();
@@ -27,7 +27,10 @@ export const RiskAssessmentPanel: React.FC<RiskAssessmentPanelProps> = ({ docume
     setState({ kind: 'loading' });
     request
       .then((result) => active && setState({ kind: 'success', result }))
-      .catch((err) => active && setState({ kind: 'error', code: err instanceof RiskApiError ? err.code : 'upstream_error' }));
+      .catch((err) =>
+        active &&
+        setState({ kind: 'error', code: err instanceof RiskApiError ? err.code : 'upstream_error', detail: err instanceof RiskApiError ? err.detail : String(err?.message ?? err) })
+      );
     return () => {
       active = false;
     };
@@ -85,7 +88,7 @@ export const RiskAssessmentPanel: React.FC<RiskAssessmentPanelProps> = ({ docume
 
       {/* Error — no silent fallback */}
       {state.kind === 'error' && (
-        <RiskErrorState code={state.code} onRetry={runAssessment} />
+        <RiskErrorState code={state.code} detail={state.detail} onRetry={runAssessment} />
       )}
 
       {/* Results */}

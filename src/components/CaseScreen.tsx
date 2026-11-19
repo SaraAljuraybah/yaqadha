@@ -78,7 +78,7 @@ const connectorTone = (step: SignatureStep) =>
 const ApprovalChain: React.FC<{ steps: SignatureStep[] }> = ({ steps }) => {
   const { t } = useLanguage();
   return (
-    <ol className="flex items-start">
+    <ol className="flex items-start min-w-[34rem]">
       {steps.map((step, i) => {
         const v = stageVisual(step);
         const Icon = v.icon;
@@ -260,7 +260,9 @@ export const CaseScreen: React.FC<CaseScreenProps> = ({
       {/* Approval chain */}
       <section className={`${card} p-5 space-y-6`}>
         <SectionHeader icon={Stamp} tone={RED_TILE} title={t('casePage.chainTitle')} subtitle={t('casePage.chainSubtitle')} />
-        <ApprovalChain steps={document.signatureSteps} />
+        <div className="overflow-x-auto -mx-1 px-1">
+          <ApprovalChain steps={document.signatureSteps} />
+        </div>
         <p className="rounded-xl border border-red-200 bg-red-50/70 px-4 py-3 text-xs text-red-700">{t('casePage.chainNote')}</p>
       </section>
 

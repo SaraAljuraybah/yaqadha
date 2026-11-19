@@ -255,7 +255,7 @@ export const ExecutiveDashboardScreen: React.FC<ExecutiveDashboardScreenProps> =
     }
     const q = query.trim().toLowerCase();
     if (q) {
-      const haystack = `${doc.code} ${doc.title} ${DEPARTMENTS[doc.department][lang]}`.toLowerCase();
+      const haystack = `${doc.code} ${doc.title} ${DEPARTMENTS[doc.department][lang]} ${t(statusBadge[doc.status].label)}`.toLowerCase();
       if (!haystack.includes(q)) return false;
     }
     return true;
@@ -289,6 +289,30 @@ export const ExecutiveDashboardScreen: React.FC<ExecutiveDashboardScreenProps> =
       <div className="pt-1">
         <h1 className="text-2xl font-bold text-slate-900 tracking-tight">{t('documentsRegistry.title')}</h1>
         <p className="text-sm text-slate-600 mt-1">{t('documentsRegistry.subtitle')}</p>
+      </div>
+
+      {/* Prominent search: number, title, department or status (filters the table/cards below) */}
+      <div role="search" className="relative">
+        <Search className="w-5 h-5 text-slate-500 absolute start-4 top-1/2 -translate-y-1/2 pointer-events-none" />
+        <input
+          id="documents-search"
+          type="search"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder={t('documentsRegistry.searchPlaceholder')}
+          aria-label={t('documentsRegistry.searchPlaceholder')}
+          className="w-full h-14 ps-12 pe-12 rounded-2xl border-2 border-slate-200 bg-white text-base text-slate-900 placeholder:text-slate-400 shadow-2xs focus:outline-none focus:border-[#2C3E28] focus:ring-2 focus:ring-[#2C3E28]/30 transition-colors"
+        />
+        {query && (
+          <button
+            type="button"
+            onClick={() => setQuery('')}
+            aria-label={t('documentsRegistry.clearSearch')}
+            className="absolute end-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full flex items-center justify-center text-slate-500 hover:bg-slate-100"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        )}
       </div>
 
       {/* Compliance distribution + trend */}
@@ -351,17 +375,6 @@ export const ExecutiveDashboardScreen: React.FC<ExecutiveDashboardScreenProps> =
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
-            <div className="relative">
-              <Search className="w-4 h-4 text-slate-400 absolute start-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-              <input
-                type="search"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder={t('documentsRegistry.searchPlaceholder')}
-                aria-label={t('documentsRegistry.searchPlaceholder')}
-                className="h-9 w-64 ps-9 pe-3 rounded-xl border border-slate-200 bg-white text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#2C3E28]"
-              />
-            </div>
             <FilterSelect
               label={t('documentsRegistry.filterDepartment')}
               value={department}
@@ -396,7 +409,47 @@ export const ExecutiveDashboardScreen: React.FC<ExecutiveDashboardScreenProps> =
           </div>
         </div>
 
-        <div className="overflow-x-auto">
+        {/* Cards (below lg) */}
+        <ul className="lg:hidden divide-y divide-slate-100">
+          {filtered.map((doc) => {
+            const badge = statusBadge[doc.status];
+            return (
+              <li key={doc.code} id={`doc-card-${doc.code}`} className="p-4 space-y-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="font-mono text-xs font-bold text-slate-500">
+                      <bdi>#{doc.code}</bdi>
+                    </div>
+                    <div className="text-sm font-bold text-slate-900 mt-0.5">{doc.title}</div>
+                    <div className="text-xs text-slate-500 mt-0.5">{DEPARTMENTS[doc.department][lang]}</div>
+                  </div>
+                  <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[11px] font-bold whitespace-nowrap shrink-0 ${badge.badge}`}>
+                    <span className={`w-1.5 h-1.5 rounded-full ${badge.dot}`} aria-hidden="true" />
+                    {t(badge.label)}
+                  </span>
+                </div>
+                <div className="flex items-end justify-between gap-3">
+                  <StageBar doc={doc} />
+                  <button
+                    type="button"
+                    onClick={() => onOpenDocument(doc.code)}
+                    disabled={!doc.hasDetailPage}
+                    title={doc.hasDetailPage ? undefined : t('documentsRegistry.noDetailPage')}
+                    aria-label={t('documentsRegistry.previewAria', { title: doc.title })}
+                    className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-xl border border-slate-200 bg-white text-xs font-bold text-slate-800 hover:bg-slate-100 transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-white shrink-0"
+                  >
+                    <Eye className="w-3.5 h-3.5" />
+                    {t('documentsRegistry.preview')}
+                  </button>
+                </div>
+              </li>
+            );
+          })}
+          {filtered.length === 0 && <li className="py-12 text-center text-sm text-slate-500">{t('documentsRegistry.emptyState')}</li>}
+        </ul>
+
+        {/* Table (lg and up) */}
+        <div className="hidden lg:block overflow-x-auto">
           <table className="w-full text-start text-sm border-collapse min-w-[900px]">
             <thead>
               <tr className="bg-slate-50 text-slate-600 text-xs font-bold border-b border-slate-200">

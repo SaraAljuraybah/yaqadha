@@ -89,7 +89,7 @@ export const RiskLoadingState: React.FC = () => {
 };
 
 /** Error state — never a silent fallback: states clearly that no assessment was produced. */
-export const RiskErrorState: React.FC<{ code: RiskErrorCode; onRetry: () => void }> = ({ code, onRetry }) => {
+export const RiskErrorState: React.FC<{ code: RiskErrorCode; detail?: string; onRetry?: () => void }> = ({ code, detail, onRetry }) => {
   const { t } = useLanguage();
   return (
     <div className="p-4 rounded-2xl bg-red-50/70 border border-red-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3" role="alert">
@@ -98,9 +98,15 @@ export const RiskErrorState: React.FC<{ code: RiskErrorCode; onRetry: () => void
         <div className="space-y-0.5">
           <div className="text-sm font-bold text-red-900">{t('riskAssessment.errorTitle')}</div>
           <p className="text-xs text-red-800">{t(errorMessages[code])}</p>
+          {detail && (
+            <p className="text-[11px] text-slate-600">
+              {t('riskAssessment.technicalDetail')} <bdi dir="ltr" className="font-mono">{detail}</bdi>
+            </p>
+          )}
           <p className="text-[11px] text-slate-600">{t('riskAssessment.errorNoFallback')}</p>
         </div>
       </div>
+      {onRetry && (
       <button
         id="btn-ai-risk-retry"
         type="button"
@@ -110,6 +116,7 @@ export const RiskErrorState: React.FC<{ code: RiskErrorCode; onRetry: () => void
         <RotateCcw className="w-3.5 h-3.5" />
         <span>{t('riskAssessment.retry')}</span>
       </button>
+      )}
     </div>
   );
 };
@@ -225,7 +232,9 @@ export const RiskResultCard: React.FC<{ result: RiskEvaluationResult; belowScore
     return <InsufficientData result={result} />;
   }
 
-  const style = colorStyles[result.risk_color] ?? colorStyles.Yellow;
+  // No substitute colour: an unknown value is reported as an unexpected response
+  const style = colorStyles[result.risk_color];
+  if (!style) return <RiskErrorState code="upstream_error" detail={`risk_color=${String(result.risk_color)}`} />;
   const factors = result.top_factors ?? [];
   const maxPoints = Math.max(1, ...factors.map((f) => f.points));
   const impact = typeof result.audit_components?.impact_level === 'number' ? result.audit_components.impact_level : null;

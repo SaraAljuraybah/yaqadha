@@ -27,6 +27,9 @@ interface DemoDecisionsValue {
   delegations: Delegation[];
   addDelegation: (delegation: Omit<Delegation, 'id'>) => void;
   cancelDelegation: (id: string) => void;
+  /** Notifications opened this session (shared by the desktop and mobile bells) */
+  readNotificationIds: Set<string>;
+  markNotificationRead: (id: string) => void;
 }
 
 const DemoDecisionsContext = createContext<DemoDecisionsValue | null>(null);
@@ -42,6 +45,11 @@ export const DemoDecisionsProvider: React.FC<{ children: React.ReactNode }> = ({
   const [caseNotes, setCaseNotes] = useState<CaseNote[]>([]);
   const [requestComments, setRequestComments] = useState<{ urgent?: string; exception?: string }>({});
   const [delegations, setDelegations] = useState<Delegation[]>(INITIAL_DELEGATIONS);
+  const [readNotificationIds, setReadNotificationIds] = useState<Set<string>>(() => new Set());
+
+  const markNotificationRead = useCallback((id: string) => {
+    setReadNotificationIds((prev) => (prev.has(id) ? prev : new Set(prev).add(id)));
+  }, []);
 
   const addDelegation = useCallback((delegation: Omit<Delegation, 'id'>) => {
     setDelegations((prev) => [...prev, { ...delegation, id: `del-session-${prev.length + 1}` }]);
@@ -81,8 +89,10 @@ export const DemoDecisionsProvider: React.FC<{ children: React.ReactNode }> = ({
       delegations,
       addDelegation,
       cancelDelegation,
+      readNotificationIds,
+      markNotificationRead,
     }),
-    [decisions, caseNotes, requestComments, decideCase, addCaseNote, decideRequest, delegations, addDelegation, cancelDelegation]
+    [decisions, caseNotes, requestComments, decideCase, addCaseNote, decideRequest, delegations, addDelegation, cancelDelegation, readNotificationIds, markNotificationRead]
   );
 
   return <DemoDecisionsContext.Provider value={value}>{children}</DemoDecisionsContext.Provider>;

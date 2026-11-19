@@ -1,5 +1,4 @@
 import type { RiskEvaluationInput } from '../types';
-import { ITEM_CATEGORY_VALUES } from '../shared/itemCategories';
 
 // ---- Fields of the risk model v1.1 request (order = form order) ----
 
@@ -21,15 +20,8 @@ export const TENDER_FIELDS: TenderField[] = ['record_id', 'item_category', 'tend
 
 export type TenderFormState = Record<TenderField, string>;
 
-/** Where an extracted value came from in the uploaded file. */
-export interface ExtractedField {
-  value: string;
-  /** Short quote from the document the value was read from */
-  source: string;
-}
-
-/** A record coming from any import source (CSV or an uploaded specifications PDF). */
-export interface ImportedTenderRecord {
+/** Values extracted from an uploaded specifications PDF (only the fields found in the file). */
+export interface PrefillRecord {
   fields: Partial<Record<TenderField, string>>;
 }
 
@@ -46,8 +38,8 @@ export const emptyForm = (): TenderFormState => ({
   submission_period_days: '',
 });
 
-/** Converts an imported record into form state (values are kept as-is so validation can flag them). */
-export const recordToFormState = (record: ImportedTenderRecord): TenderFormState => {
+/** Converts extracted values into form state; fields not found in the file stay empty. */
+export const recordToFormState = (record: PrefillRecord): TenderFormState => {
   const form = emptyForm();
   for (const field of TENDER_FIELDS) {
     const value = record.fields[field];
@@ -75,9 +67,9 @@ const parseNumber = (value: string): number | null => {
   return Number.isFinite(n) ? n : null;
 };
 
-// ---- Validation (mirrors the API contract; the category is required because without it there is no score) ----
+// ---- Validation (mirrors the API contract; the category is free text but required: without it there is no score) ----
 
-export type ValidationError = 'required' | 'amount_positive' | 'whole_number' | 'category';
+export type ValidationError = 'required' | 'amount_positive' | 'whole_number';
 
 export type FormErrors = Partial<Record<TenderField, ValidationError>>;
 
@@ -86,8 +78,7 @@ export const validateForm = (form: TenderFormState): FormErrors => {
 
   if (!form.record_id.trim()) errors.record_id = 'required';
 
-  if (!form.item_category) errors.item_category = 'required';
-  else if (!ITEM_CATEGORY_VALUES.includes(form.item_category)) errors.item_category = 'category';
+  if (!form.item_category.trim()) errors.item_category = 'required';
 
   if (!form.tender_value_sar.trim()) errors.tender_value_sar = 'required';
   else {
@@ -130,7 +121,7 @@ export const buildRiskRequest = (input: RiskEvaluationInput): RiskEvaluationInpu
 export const toRiskInput = (form: TenderFormState): RiskEvaluationInput =>
   buildRiskRequest({
     record_id: form.record_id.trim(),
-    item_category: form.item_category,
+    item_category: form.item_category.trim(),
     tender_value_sar: parseNumber(form.tender_value_sar) as number,
     items_count: parseNumber(form.items_count) as number,
     bids_count: parseNumber(form.bids_count) as number,
@@ -140,17 +131,3 @@ export const toRiskInput = (form: TenderFormState): RiskEvaluationInput =>
     documents_count: parseNumber(form.documents_count) as number,
     submission_period_days: parseNumber(form.submission_period_days) as number,
   });
-
-/** Example values from the target design (tender TND-2026-118). */
-export const EXAMPLE_FORM: TenderFormState = {
-  record_id: 'TND-2026-118',
-  item_category: ITEM_CATEGORY_VALUES[0] ?? '',
-  tender_value_sar: '4800000',
-  items_count: '3',
-  bids_count: '1',
-  competitors_count: '1',
-  prior_awards_count: '4',
-  winning_suppliers_count: '1',
-  documents_count: '2',
-  submission_period_days: '5',
-};

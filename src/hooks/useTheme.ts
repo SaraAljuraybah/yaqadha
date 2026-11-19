@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useSyncExternalStore } from 'react';
 
 export type Theme = 'light' | 'dark';
 
@@ -14,38 +14,39 @@ const readStoredTheme = (): Theme | null => {
   }
 };
 
-// The inline script in index.html has already applied the correct class before first paint
-const getInitialTheme = (): Theme =>
-  document.documentElement.classList.contains('dark') ? 'dark' : 'light';
+// One shared theme for every toggle (desktop header and the mobile account sheet).
+// The inline script in index.html has already applied the correct class before first paint.
+let current: Theme = document.documentElement.classList.contains('dark') ? 'dark' : 'light';
+const listeners = new Set<() => void>();
+
+const apply = (theme: Theme) => {
+  current = theme;
+  document.documentElement.classList.toggle('dark', theme === 'dark');
+  listeners.forEach((listener) => listener());
+};
+
+// Follow OS preference changes until the user makes an explicit choice
+window.matchMedia(DARK_QUERY).addEventListener('change', (event) => {
+  if (!readStoredTheme()) apply(event.matches ? 'dark' : 'light');
+});
+
+const subscribe = (listener: () => void) => {
+  listeners.add(listener);
+  return () => listeners.delete(listener);
+};
 
 export const useTheme = () => {
-  const [theme, setTheme] = useState<Theme>(getInitialTheme);
-
-  useEffect(() => {
-    document.documentElement.classList.toggle('dark', theme === 'dark');
-  }, [theme]);
-
-  // Follow OS preference changes until the user makes an explicit choice
-  useEffect(() => {
-    const media = window.matchMedia(DARK_QUERY);
-    const handleChange = (event: MediaQueryListEvent) => {
-      if (!readStoredTheme()) {
-        setTheme(event.matches ? 'dark' : 'light');
-      }
-    };
-    media.addEventListener('change', handleChange);
-    return () => media.removeEventListener('change', handleChange);
-  }, []);
+  const theme = useSyncExternalStore(subscribe, () => current);
 
   const toggleTheme = useCallback(() => {
-    const next: Theme = theme === 'dark' ? 'light' : 'dark';
+    const next: Theme = current === 'dark' ? 'light' : 'dark';
     try {
       localStorage.setItem(STORAGE_KEY, next);
     } catch {
       // Storage unavailable: the choice still applies for this session
     }
-    setTheme(next);
-  }, [theme]);
+    apply(next);
+  }, []);
 
   return { theme, toggleTheme };
 };

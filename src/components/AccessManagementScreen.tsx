@@ -334,7 +334,7 @@ export const AccessManagementScreen: React.FC = () => {
               );
             })}
           </div>
-          <div className="relative">
+          <div className="relative w-full sm:w-auto">
             <Search className="w-4 h-4 text-slate-400 absolute start-3 top-1/2 -translate-y-1/2 pointer-events-none" />
             <input
               type="search"
@@ -342,7 +342,7 @@ export const AccessManagementScreen: React.FC = () => {
               onChange={(e) => setQuery(e.target.value)}
               placeholder={t('accessManagement.searchPlaceholder')}
               aria-label={t('accessManagement.searchPlaceholder')}
-              className="h-9 w-72 ps-9 pe-3 rounded-xl border border-slate-200 bg-white text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#2C3E28]"
+              className="h-9 w-full sm:w-72 ps-9 pe-3 rounded-xl border border-slate-200 bg-white text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#2C3E28]"
             />
           </div>
         </div>

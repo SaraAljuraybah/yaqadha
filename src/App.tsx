@@ -5,6 +5,7 @@ import { useLanguage } from './i18n';
 import { Sidebar } from './components/Sidebar';
 import { TopHeader } from './components/TopHeader';
 import { DemoBanner } from './components/DemoBanner';
+import { AccountSheet, MobileBottomNav, MobileDemoBanner, MobileHeader } from './components/MobileShell';
 import { OverviewScreen } from './components/OverviewScreen';
 import { FileDossierScreen } from './components/FileDossierScreen';
 import { CaseScreen } from './components/CaseScreen';
@@ -46,6 +47,7 @@ export default function App() {
 
   // Shell state
   const [demoMode, setDemoMode] = useState<boolean>(readDemoMode);
+  const [isAccountOpen, setIsAccountOpen] = useState(false);
 
   // Decisions taken this session (shared with the sidebar, bell, overview and registry)
   const { decideCase, addCaseNote } = useDemoDecisions();
@@ -125,15 +127,16 @@ export default function App() {
   return (
     <div className="min-h-screen bg-[#F8FAFC] dark:bg-[#0E1210] text-slate-900 flex font-['IBM_Plex_Sans_Arabic',sans-serif]">
 
-      {/* Fixed sidebar (start side) */}
-      <div className="print:hidden">
+      {/* Fixed sidebar (start side) — desktop only */}
+      <div className="hidden lg:block print:hidden">
         <Sidebar activeScreen={activeScreen} onNavigate={navigate} />
       </div>
 
-      {/* Main content shifted for the fixed sidebar */}
-      <div className="ms-64 lg:ms-72 print:ms-0 flex-1 flex flex-col min-w-0">
+      {/* Main content shifted for the fixed sidebar on desktop */}
+      <div className="lg:ms-72 print:ms-0 flex-1 flex flex-col min-w-0">
 
-        <div className="print:hidden sticky top-0 z-30">
+        {/* Desktop header */}
+        <div className="hidden lg:block print:hidden sticky top-0 z-30">
           <TopHeader
             demoMode={demoMode}
             onToggleDemoMode={toggleDemoMode}
@@ -142,13 +145,21 @@ export default function App() {
           />
         </div>
 
+        {/* Mobile header */}
+        <div className="print:hidden contents">
+          <MobileHeader onOpenNotification={handleOpenNotification} onViewAllNotifications={() => navigate('overview')} />
+        </div>
+
         {demoMode && (
           <div className="print:hidden">
-            <DemoBanner />
+            <div className="hidden lg:block">
+              <DemoBanner />
+            </div>
+            <MobileDemoBanner />
           </div>
         )}
 
-        <main className="flex-1 w-full p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto">
+        <main className="flex-1 w-full px-4 pt-4 pb-24 sm:px-6 sm:pt-6 lg:p-8 max-w-7xl mx-auto">
 
           {/* نظرة عامة (default page) */}
           {activeScreen === 'overview' && <OverviewScreen onOpenDocument={openDocumentByCode} />}
@@ -192,6 +203,21 @@ export default function App() {
         </main>
       </div>
 
+      {/* Mobile bottom navigation and the "My account" sheet */}
+      <MobileBottomNav
+        activeScreen={activeScreen}
+        isAccountOpen={isAccountOpen}
+        onNavigate={navigate}
+        onOpenAccount={() => setIsAccountOpen(true)}
+      />
+      <AccountSheet
+        isOpen={isAccountOpen}
+        onClose={() => setIsAccountOpen(false)}
+        demoMode={demoMode}
+        onToggleDemoMode={toggleDemoMode}
+        onNavigate={navigate}
+      />
+
       {/* Pre-publish verification for the document being viewed */}
       <PrePublishScanModal
         isOpen={isPrePublishModalOpen}
@@ -234,7 +260,7 @@ export default function App() {
 
       {/* Floating Notification Toast */}
       {toastMessage && (
-        <div className="fixed bottom-6 start-6 z-50 animate-in slide-in-from-bottom-3 duration-300 print:hidden" role="status" aria-live="polite">
+        <div className="fixed bottom-24 lg:bottom-6 start-4 end-4 lg:end-auto lg:start-6 z-50 animate-in slide-in-from-bottom-3 duration-300 print:hidden" role="status" aria-live="polite">
           <div className="bg-slate-900 text-white rounded-2xl shadow-2xl p-4 border border-slate-700 flex items-start gap-3 max-w-md">
             {toastMessage.type === 'success' && <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" />}
             {toastMessage.type === 'alert' && <ShieldAlert className="w-5 h-5 text-red-400 shrink-0 mt-0.5" />}

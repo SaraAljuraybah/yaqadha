@@ -8,7 +8,8 @@ export const MAX_PDF_BYTES = 4 * 1024 * 1024;
 export type ExtractErrorCode = 'unsupported_file' | 'file_too_large' | 'not_configured' | 'extraction_failed' | 'unavailable';
 
 export class TenderExtractError extends Error {
-  constructor(public readonly code: ExtractErrorCode) {
+  /** `detail`: the real technical reason reported by the server, shown under the message */
+  constructor(public readonly code: ExtractErrorCode, public readonly detail?: string) {
     super(code);
   }
 }
@@ -40,15 +41,16 @@ export async function extractTenderFields(file: File): Promise<ExtractionResult>
       body: file,
       signal: AbortSignal.timeout(90_000),
     });
-  } catch {
-    throw new TenderExtractError('unavailable');
+  } catch (err: any) {
+    throw new TenderExtractError('unavailable', err?.name === 'TimeoutError' ? 'timeout (browser, 90 s)' : 'network error (browser)');
   }
   const payload = await response.json().catch(() => null);
   if (response.ok && payload?.fields) {
     return { fields: payload.fields, pageCount: payload.pageCount ?? null, durationMs: Math.round(performance.now() - started) };
   }
   const code = payload?.error?.code;
-  if (KNOWN_CODES.includes(code)) throw new TenderExtractError(code);
-  if (response.status === 413) throw new TenderExtractError('file_too_large');
-  throw new TenderExtractError(response.status >= 500 ? 'unavailable' : 'extraction_failed');
+  const detail: string | undefined = typeof payload?.error?.detail === 'string' ? payload.error.detail : undefined;
+  if (KNOWN_CODES.includes(code)) throw new TenderExtractError(code, detail);
+  if (response.status === 413) throw new TenderExtractError('file_too_large', `HTTP 413`);
+  throw new TenderExtractError(response.status >= 500 ? 'unavailable' : 'extraction_failed', detail ?? `HTTP ${response.status}`);
 }

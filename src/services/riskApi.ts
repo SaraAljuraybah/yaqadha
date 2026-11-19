@@ -4,7 +4,8 @@ import { buildRiskRequest } from './tenderForm';
 export type RiskErrorCode = 'not_configured' | 'unavailable' | 'configuration_error' | 'invalid_input' | 'upstream_error';
 
 export class RiskApiError extends Error {
-  constructor(public readonly code: RiskErrorCode) {
+  /** `detail`: the real technical reason reported by the server (status, rejected fields), shown under the message */
+  constructor(public readonly code: RiskErrorCode, public readonly detail?: string) {
     super(code);
   }
 }
@@ -35,8 +36,8 @@ export async function evaluateRisk(input: RiskEvaluationInput): Promise<RiskEval
       body: JSON.stringify(buildRiskRequest(input)),
       signal: AbortSignal.timeout(CLIENT_TIMEOUT_MS),
     });
-  } catch {
-    throw new RiskApiError('unavailable');
+  } catch (err: any) {
+    throw new RiskApiError('unavailable', err?.name === 'TimeoutError' ? 'timeout (browser)' : 'network error (browser)');
   }
 
   const payload = await response.json().catch(() => null);
@@ -45,9 +46,13 @@ export async function evaluateRisk(input: RiskEvaluationInput): Promise<RiskEval
     return payload as RiskEvaluationResult;
   }
   const code = payload?.error?.code;
-  if (KNOWN_CODES.includes(code)) throw new RiskApiError(code);
+  const detail: string | undefined = typeof payload?.error?.detail === 'string' ? payload.error.detail : undefined;
+  if (KNOWN_CODES.includes(code)) throw new RiskApiError(code, detail);
   // A 200 that is not a valid assessment is genuinely unexpected; anything else is classified by its status
-  throw new RiskApiError(response.ok ? 'upstream_error' : codeFromStatus(response.status));
+  throw new RiskApiError(
+    response.ok ? 'upstream_error' : codeFromStatus(response.status),
+    detail ?? (response.ok ? 'HTTP 200 without assessment_status' : `HTTP ${response.status}`)
+  );
 }
 
 // One in-flight/completed evaluation per record, so switching tabs during a slow

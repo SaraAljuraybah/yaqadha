@@ -71,9 +71,10 @@ const RISK_API_TIMEOUT_MS = 55_000;
 
 type RiskErrorCode = "not_configured" | "unavailable" | "configuration_error" | "invalid_input" | "upstream_error";
 
-const riskError = (status: number, code: RiskErrorCode, message: string) => ({
+/** `detail` is the real technical reason (upstream status, rejected fields) — never the key or the request body. */
+const riskError = (status: number, code: RiskErrorCode, message: string, detail?: string) => ({
   status,
-  body: { success: false, error: { code, message } },
+  body: { success: false, error: { code, message, ...(detail ? { detail } : {}) } },
 });
 
 /**
@@ -101,7 +102,7 @@ async function callRiskApi(apiPath: string, init: { method: "GET" | "POST"; body
   } catch (err: any) {
     const kind = err?.name === "TimeoutError" ? "timeout" : "unreachable";
     console.error(`[risk] ${apiPath}: ${kind}`);
-    return riskError(503, "unavailable", "The risk model service is waking up or unavailable. Please try again in a moment.");
+    return riskError(503, "unavailable", "The risk model service is waking up or unavailable. Please try again in a moment.", `${apiPath}: ${kind}`);
   }
 
   const payload: any = await upstream.json().catch(() => null);
@@ -112,7 +113,7 @@ async function callRiskApi(apiPath: string, init: { method: "GET" | "POST"; body
 
   if (upstream.status === 401 || upstream.status === 403) {
     console.error(`[risk] ${apiPath}: upstream rejected the API key (HTTP ${upstream.status})`);
-    return riskError(502, "configuration_error", "The risk model rejected the platform's credentials (server configuration error).");
+    return riskError(502, "configuration_error", "The risk model rejected the platform's credentials (server configuration error).", `HTTP ${upstream.status}`);
   }
 
   if (upstream.status === 422 || upstream.status === 400) {
@@ -120,16 +121,16 @@ async function callRiskApi(apiPath: string, init: { method: "GET" | "POST"; body
       ? payload.detail.map((d: any) => `${(d?.loc ?? []).join(".")}: ${d?.type ?? "invalid"}`).join("; ")
       : "no details";
     console.error(`[risk] ${apiPath}: invalid input (HTTP ${upstream.status}) - ${details}`);
-    return riskError(422, "invalid_input", "Invalid input data: the risk model rejected the submitted data.");
+    return riskError(422, "invalid_input", "Invalid input data: the risk model rejected the submitted data.", `HTTP ${upstream.status} · ${details}`);
   }
 
   if (upstream.status >= 500 || upstream.status === 408 || upstream.status === 429 || !payload) {
     console.error(`[risk] ${apiPath}: upstream unavailable (HTTP ${upstream.status}${payload ? "" : ", non-JSON body"})`);
-    return riskError(503, "unavailable", "The risk model service is waking up or unavailable. Please try again in a moment.");
+    return riskError(503, "unavailable", "The risk model service is waking up or unavailable. Please try again in a moment.", `HTTP ${upstream.status}${payload ? "" : " (non-JSON body)"}`);
   }
 
   console.error(`[risk] ${apiPath}: unexpected upstream response (HTTP ${upstream.status})`);
-  return riskError(502, "upstream_error", "The risk model returned an unexpected response.");
+  return riskError(502, "upstream_error", "The risk model returned an unexpected response.", `HTTP ${upstream.status}`);
 }
 
 export function createApiApp() {
