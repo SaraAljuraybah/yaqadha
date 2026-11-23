@@ -102,7 +102,7 @@ export const EscalationModal: React.FC<EscalationModalProps> = ({
                     onChange={(e) => setEscalationTarget({ ...escalationTarget, nazaha: e.target.checked })}
                     className="rounded text-[#2C3E28] focus:ring-[#2C3E28] w-4 h-4"
                   />
-                  <span>{t('modals.escalation.targetNazaha', { reference: legalRef('antiCorruptionArt16', lang) })}</span>
+                  <span>{t('modals.escalation.targetNazaha', { reference: legalRef('nazahaLaw', lang) })}</span>
                 </label>
 
                 <label className="flex items-center gap-2.5 p-2.5 rounded-xl border border-slate-200 bg-slate-50 text-xs font-medium cursor-pointer">

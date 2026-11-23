@@ -51,35 +51,29 @@ export const LEGAL_REFERENCES = {
     ar: 'سياسة أمن المعلومات الداخلية',
     en: 'the Internal Information Security Policy',
   },
-  antiCorruptionArt16: {
-    ar: 'المادة (16) من نظام مكافحة الفساد وتعارض المصالح',
-    en: 'Article (16) of the Anti-Corruption and Conflict of Interest Law',
-  },
-  disciplineArt24: {
-    ar: 'المادة (24) من لائحة الانضباط الوظيفي وقواعد تدقيق النزاهة المؤسسية',
-    en: 'Article (24) of the Workplace Discipline Regulation and Institutional Integrity Audit Rules',
-  },
-  financialControlArt8: {
-    ar: 'المادة (8) من لائحة الرقابة والضبط المالي الداخلي',
-    en: 'Article (8) of the Internal Financial Control Regulation',
-  },
-  authorityMatrixArt14: {
-    ar: 'المادة (14) من مصفوفة الصلاحيات المالية للمبالغ التي تتجاوز مليون ريال',
-    en: 'Article (14) of the Financial Authority Matrix for amounts exceeding SAR 1 million',
-  },
-  digitalApprovalArt12: {
-    ar: 'المادة (12) من لائحة الحوكمة والاعتماد الرقمي',
-    en: 'Article (12) of the Governance & Digital Approval Regulation',
+  /** National law (no article number cited). Used in the escalation approval window. */
+  nazahaLaw: {
+    ar: 'نظام هيئة الرقابة ومكافحة الفساد',
+    en: 'the Oversight and Anti-Corruption Authority Law',
   },
 } satisfies Record<string, LocalizedText>;
 
 export type LegalReferenceId = keyof typeof LEGAL_REFERENCES;
 
-/** Verification notes for references whose wording or attribution changed (not shown in the UI). */
-export const LEGAL_REFERENCE_NOTES: Partial<Record<LegalReferenceId, string>> = {
+/**
+ * Verification notes (not shown in the UI).
+ * governanceArt43, internalGovernancePolicy and infoSecPolicy are INTERNAL policies of the demo entity,
+ * not national laws or regulations. Only nazahaLaw refers to a national law.
+ */
+export const LEGAL_REFERENCE_NOTES: Record<LegalReferenceId, string> = {
   governanceArt43:
-    'Attribution changed from "لائحة المنافسات والمشتريات" to "لائحة الحوكمة والاعتمادات الإدارية" — needs verification.',
-  internalGovernancePolicy: 'Used as the basis of violation 2 with no article number, pending a verified reference.',
+    'Internal policy of the demo entity ("لائحة الحوكمة والاعتمادات الإدارية" is the entity\'s own regulation, not a national law). ' +
+    'Attribution changed from "لائحة المنافسات والمشتريات" — needs verification.',
+  internalGovernancePolicy:
+    'Internal policy of the demo entity. Used as the basis of violation 2 with no article number, pending a verified reference.',
+  infoSecPolicy: 'Internal policy of the demo entity. Used as the basis of violation 3 with no article number.',
+  nazahaLaw:
+    'National law, cited by name only with no article number. Replaced "المادة (16) من نظام مكافحة الفساد وتعارض المصالح", which is not an actual law.',
 };
 
 export const legalRef = (id: LegalReferenceId, lang: Lang): string => LEGAL_REFERENCES[id][lang];
@@ -1124,8 +1118,7 @@ const localizedDocuments: Localizable<DocumentDossier>[] = [
       ],
       legalArticles: [
         join(ref.governanceArt43, { ar: ': اشتراط سلامة التدرج الرقابي والتواقيع المتسلسلة.', en: ': requires a sound oversight hierarchy and sequential signatures.' }),
-        join(ref.antiCorruptionArt16, '.'),
-        join(ref.disciplineArt24, '.'),
+        join(ref.nazahaLaw, '.'),
       ],
       recommendedAction: {
         ar: 'إبقاء التعليق الاحترازي وطلب إفادة من المُعد، ثم اتخاذ قرار بشري برفع التعليق أو اعتماد التصعيد إلى هيئة الرقابة ومكافحة الفساد.',
@@ -1394,7 +1387,7 @@ const localizedDocuments: Localizable<DocumentDossier>[] = [
         { ar: 'التوقيع تم بالتفويض خلال فترة إجازة المفوِّض.', en: 'The signature was made under delegation during the delegator’s leave.' },
         { ar: 'لا يوجد تعارض مصالح بين الموقّعين والمورد.', en: 'No conflict of interest between the signatories and the supplier.' },
       ],
-      legalArticles: [join(ref.financialControlArt8, '.'), join(ref.authorityMatrixArt14, '.')],
+      legalArticles: [],
       recommendedAction: {
         ar: 'مراجعة سبب الاعتماد المستعجل مع المفوَّض إليه قبل الموافقة على متابعة المسار.',
         en: 'Review the reason for the urgent approval with the delegate before approving the path to continue.',
@@ -1654,7 +1647,6 @@ const localizedDocuments: Localizable<DocumentDossier>[] = [
       },
       detectedConflicts: [],
       legalArticles: [
-        join({ ar: 'المطابقة التامة لـ', en: 'Full compliance with ' }, ref.digitalApprovalArt12, '.'),
         { ar: 'استيفاء معايير الرقابة الداخلية وإبراء الذمة الإدارية.', en: 'Internal control criteria met and administrative clearance granted.' },
       ],
       recommendedAction: {
