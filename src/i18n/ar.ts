@@ -34,9 +34,6 @@ export const ar = {
   },
 
   header: {
-    demoMode: 'وضع العرض',
-    demoModeOnLabel: 'إيقاف وضع العرض',
-    demoModeOffLabel: 'تشغيل وضع العرض',
     notificationsCount: 'الإشعارات ({count})',
     tabDecision: 'يحتاج قرارك ({count})',
     tabInfo: 'للعلم ({count})',
@@ -45,6 +42,8 @@ export const ar = {
     themeToDark: 'التبديل إلى الوضع الليلي',
     themeToLight: 'التبديل إلى الوضع النهاري',
     languageToggleLabel: 'التبديل إلى اللغة الإنجليزية',
+    accountMenuLabel: 'قائمة الحساب',
+    logOut: 'تسجيل الخروج',
   },
 
   demoBanner: {

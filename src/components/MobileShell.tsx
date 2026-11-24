@@ -1,11 +1,11 @@
 import React, { useEffect } from 'react';
-import { Gauge, Home, LayoutGrid, ShieldCheck, SlidersHorizontal, Stamp, User, X, LucideIcon } from 'lucide-react';
+import { Gauge, Home, LayoutGrid, LogOut, ShieldCheck, SlidersHorizontal, Stamp, User, X, LucideIcon } from 'lucide-react';
 import { ActiveScreen } from '../types';
 import { TranslationKey, useLanguage } from '../i18n';
 import { CURRENT_USER, DemoNotification } from '../data/demo';
 import { useTheme } from '../hooks/useTheme';
-import { useDemoDecisions } from '../state/DemoDecisions';
-import { DemoModeSwitch, NotificationsBell } from './TopHeader';
+import { useDemoDecisions, useLogOut } from '../state/DemoDecisions';
+import { NotificationsBell } from './TopHeader';
 
 // Mobile layout (below lg): compact header, bottom navigation, and the "My account" sheet.
 
@@ -95,16 +95,15 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({ activeScreen, 
 interface AccountSheetProps {
   isOpen: boolean;
   onClose: () => void;
-  demoMode: boolean;
-  onToggleDemoMode: () => void;
   onNavigate: (screen: ActiveScreen) => void;
 }
 
-/** "My account": name, role, theme, language and demo mode — plus the two pages not in the bottom bar. */
-export const AccountSheet: React.FC<AccountSheetProps> = ({ isOpen, onClose, demoMode, onToggleDemoMode, onNavigate }) => {
+/** "My account": name, role, theme and language, the two pages not in the bottom bar, and "Log out". */
+export const AccountSheet: React.FC<AccountSheetProps> = ({ isOpen, onClose, onNavigate }) => {
   const { lang, t, toggleLanguage } = useLanguage();
   const { theme, toggleTheme } = useTheme();
   const { stats } = useDemoDecisions();
+  const logOut = useLogOut();
 
   useEffect(() => {
     if (!isOpen) return;
@@ -158,10 +157,6 @@ export const AccountSheet: React.FC<AccountSheetProps> = ({ isOpen, onClose, dem
               {t('mobile.switchLanguage')}
             </button>
           </div>
-          <div className={row}>
-            <span className="text-sm font-medium text-slate-800">{t('header.demoMode')}</span>
-            <DemoModeSwitch demoMode={demoMode} onToggle={onToggleDemoMode} compact />
-          </div>
         </div>
 
         <div className="mt-4 space-y-2">
@@ -182,6 +177,15 @@ export const AccountSheet: React.FC<AccountSheetProps> = ({ isOpen, onClose, dem
             {t('sidebar.accessManagement')}
           </button>
         </div>
+
+        <button
+          type="button"
+          onClick={logOut}
+          className="mt-4 w-full h-11 flex items-center justify-center gap-2 rounded-xl border border-red-200 bg-red-50 text-sm font-bold text-red-700"
+        >
+          <LogOut className="w-4 h-4 rtl:-scale-x-100" aria-hidden="true" />
+          {t('header.logOut')}
+        </button>
       </div>
     </div>
   );

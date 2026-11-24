@@ -35,9 +35,6 @@ export const en: Dictionary = {
   },
 
   header: {
-    demoMode: 'Demo mode',
-    demoModeOnLabel: 'Turn off demo mode',
-    demoModeOffLabel: 'Turn on demo mode',
     notificationsCount: 'Notifications ({count})',
     tabDecision: 'Needs your decision ({count})',
     tabInfo: 'For your information ({count})',
@@ -46,6 +43,8 @@ export const en: Dictionary = {
     themeToDark: 'Switch to dark mode',
     themeToLight: 'Switch to light mode',
     languageToggleLabel: 'Switch to Arabic',
+    accountMenuLabel: 'Account menu',
+    logOut: 'Log out',
   },
 
   demoBanner: {

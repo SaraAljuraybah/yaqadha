@@ -21,9 +21,22 @@ import {
   Layers,
   LayoutGrid,
   ShieldCheck,
-  Gauge
+  Gauge,
+  UserCheck
 } from 'lucide-react';
 import { motion, MotionConfig } from 'motion/react';
+import { CURRENT_USER } from '../data/currentUser';
+
+// Demo values for the "fill demo data" button in the demo-request form. Name, title and department
+// come from the platform's current user (Dr. Fahad) so they match the platform exactly; the email
+// and phone are fictional (example.com domain, placeholder number). The landing page is Arabic-only.
+const DEMO_FORM_DATA = {
+  name: CURRENT_USER.name.ar,
+  org: CURRENT_USER.department.ar,
+  role: CURRENT_USER.role.ar,
+  email: 'fahd.alhudhali@example.com',
+  phone: '0500000000',
+};
 
 // Official Yaqadha Brand Emblem with unified dark/light palette (#A1C89C in Dark Mode / #273E26 in Light Mode)
 function YaqadhaLogo({ className = 'w-9 h-9' }: { className?: string }) {
@@ -1587,7 +1600,7 @@ export default function LandingPage() {
           </div>
 
           <div className={`text-[11px] md:text-xs pt-2 flex flex-wrap md:flex-nowrap items-center justify-center gap-x-3 gap-y-1.5 md:gap-5 ${isDark ? 'text-slate-400' : 'text-emerald-900/80 font-medium'}`}>
-            <span>✓ متوافق مع لوائح النزاهة</span>
+            <span>✓ متوافق مع الأنظمة واللوائح</span>
             <span className="hidden md:inline">·</span>
             <span>✓ استضافة سيادية داخل المملكة</span>
             <span className="hidden md:inline">·</span>
@@ -1632,6 +1645,19 @@ export default function LandingPage() {
                     طلب عرض تجريبي لمنصة يقظة
                   </h3>
                 </div>
+
+                <button
+                  type="button"
+                  onClick={() => setFormData({ ...DEMO_FORM_DATA })}
+                  className={`w-full md:w-auto inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border text-xs font-bold transition-colors active:scale-95 cursor-pointer ${
+                    isDark
+                      ? 'border-[#A1C89C]/50 text-[#A1C89C] bg-emerald-950/30 hover:bg-emerald-900/40'
+                      : 'border-emerald-700/30 text-[#273E26] bg-white/70 hover:bg-emerald-50'
+                  }`}
+                >
+                  <UserCheck className="w-4 h-4" />
+                  <span>إدخال بيانات تجريبية</span>
+                </button>
 
                 <div className="space-y-3 pt-2">
                   <div>

@@ -3,7 +3,7 @@ import { Play } from 'lucide-react';
 import { useLanguage } from '../i18n';
 import { DEMO_STATS } from '../data/demo';
 
-/** Shown under the header while demo mode is on. */
+/** Always shown under the desktop header: the platform runs on demo data only. */
 export const DemoBanner: React.FC = () => {
   const { t } = useLanguage();
 

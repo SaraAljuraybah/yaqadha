@@ -7,6 +7,7 @@
 
 import { DocumentDossier } from '../types';
 import { Lang, Localizable, LocalizedText, localize } from '../i18n/localize';
+import { CURRENT_USER } from './currentUser';
 
 /** Joins localized fragments per language (used to build sentences around shared references). */
 const join = (...parts: (LocalizedText | string)[]): LocalizedText => ({
@@ -82,7 +83,7 @@ export const legalRef = (id: LegalReferenceId, lang: Lang): string => LEGAL_REFE
 // 3. People
 // ----------------------------------------------------------------------------
 export const PEOPLE = {
-  fahad: { name: { ar: 'د. فهد الهذلي', en: 'Dr. Fahad Al-Hudhali' }, initials: { ar: 'ف.هـ', en: 'F.H' } },
+  fahad: { name: CURRENT_USER.name, initials: CURRENT_USER.initials },
   ahmed: { name: { ar: 'أ. أحمد الخالد', en: 'Mr. Ahmed Al-Khaled' } },
   tariq: { name: { ar: 'د. طارق المنصور', en: 'Dr. Tariq Al-Mansour' } },
   salman: { name: { ar: 'أ. سلمان العتيبي', en: 'Mr. Salman Al-Otaibi' } },
@@ -97,12 +98,7 @@ export const PEOPLE = {
 /** "Dr. Tariq Al-Mansour (delegated to: Mr. Salman Al-Otaibi)" — finance stage of YQ-8841. */
 export const FINANCE_STAGE_DELEGATED = join(PEOPLE.tariq.name, { ar: ' (بالتفويض: ', en: ' (delegated to: ' }, PEOPLE.salman.name, ')');
 
-export const CURRENT_USER = {
-  name: PEOPLE.fahad.name,
-  initials: PEOPLE.fahad.initials,
-  firstName: { ar: 'د. فهد', en: 'Dr. Fahad' },
-  role: { ar: 'مراقب عام تنفيذي', en: 'Executive Chief Auditor' },
-};
+export { CURRENT_USER };
 
 // ----------------------------------------------------------------------------
 // 4. Departments (the 5 monitored departments) and integrity index
@@ -600,7 +596,7 @@ const localizedUsers: Localizable<UserAccount>[] = [
     id: 'u-1',
     name: PEOPLE.fahad.name,
     role: CURRENT_USER.role,
-    department: { ar: 'أمانة الرقابة والحوكمة', en: 'Oversight & Governance Secretariat' },
+    department: CURRENT_USER.department,
     accessLevel: 'full_audit',
     accessLevelLabel: { ar: 'رقابة كاملة وتعليق احترازي للوثائق', en: 'Full oversight & precautionary document suspension' },
     twoFactor: true,
