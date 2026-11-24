@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { AlertTriangle, ArrowLeftRight, Bell, CheckCircle2, Clock, Eye, Play, LucideIcon } from 'lucide-react';
+import { AlertTriangle, ArrowLeftRight, Bell, CheckCircle2, Clock, Eye, LucideIcon } from 'lucide-react';
 import { ThemeToggle } from './ThemeToggle';
 import { LanguageToggle } from './LanguageToggle';
 import { useLanguage } from '../i18n';
@@ -150,48 +150,12 @@ export const NotificationsBell: React.FC<NotificationsBellProps> = ({ onOpenNoti
   );
 };
 
-/** Demo-mode switch (header on desktop, account sheet on mobile). */
-export const DemoModeSwitch: React.FC<{ demoMode: boolean; onToggle: () => void; compact?: boolean }> = ({ demoMode, onToggle, compact }) => {
-  const { t } = useLanguage();
-  return (
-    <button
-      id={compact ? undefined : 'btn-demo-mode'}
-      type="button"
-      role="switch"
-      aria-checked={demoMode}
-      aria-label={demoMode ? t('header.demoModeOnLabel') : t('header.demoModeOffLabel')}
-      onClick={onToggle}
-      className={
-        compact
-          ? 'flex items-center'
-          : 'h-11 flex items-center gap-2.5 ps-3 pe-2.5 rounded-2xl border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 transition-colors shadow-2xs'
-      }
-    >
-      {!compact && (
-        <>
-          <Play className="w-4 h-4 text-emerald-600" />
-          <span className="text-sm font-medium whitespace-nowrap">{t('header.demoMode')}</span>
-        </>
-      )}
-      <span className={`relative w-9 h-5 rounded-full transition-colors ${demoMode ? 'bg-emerald-500' : 'bg-slate-300'}`} aria-hidden="true">
-        <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow-sm transition-all ${demoMode ? 'start-[18px]' : 'start-0.5'}`} />
-      </span>
-    </button>
-  );
-};
-
-interface TopHeaderProps extends NotificationsBellProps {
-  demoMode: boolean;
-  onToggleDemoMode: () => void;
-}
-
 /** Desktop header (lg and up). */
-export const TopHeader: React.FC<TopHeaderProps> = ({ demoMode, onToggleDemoMode, onOpenNotification, onViewAllNotifications }) => {
+export const TopHeader: React.FC<NotificationsBellProps> = ({ onOpenNotification, onViewAllNotifications }) => {
   const { lang } = useLanguage();
   return (
     <header className="sticky top-0 z-30 bg-[#F8FAFC]/95 dark:bg-[#0E1210]/95 backdrop-blur-md border-b border-slate-200/90 h-20 px-6 lg:px-8 flex items-center justify-end gap-3">
       <div className="flex items-center gap-2.5 shrink-0">
-        <DemoModeSwitch demoMode={demoMode} onToggle={onToggleDemoMode} />
         <NotificationsBell onOpenNotification={onOpenNotification} onViewAllNotifications={onViewAllNotifications} />
         <LanguageToggle />
         <ThemeToggle />

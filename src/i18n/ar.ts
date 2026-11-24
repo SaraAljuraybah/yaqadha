@@ -34,9 +34,6 @@ export const ar = {
   },
 
   header: {
-    demoMode: 'وضع العرض',
-    demoModeOnLabel: 'إيقاف وضع العرض',
-    demoModeOffLabel: 'تشغيل وضع العرض',
     notificationsCount: 'الإشعارات ({count})',
     tabDecision: 'يحتاج قرارك ({count})',
     tabInfo: 'للعلم ({count})',

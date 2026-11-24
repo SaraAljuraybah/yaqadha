@@ -5,7 +5,7 @@ import { TranslationKey, useLanguage } from '../i18n';
 import { CURRENT_USER, DemoNotification } from '../data/demo';
 import { useTheme } from '../hooks/useTheme';
 import { useDemoDecisions } from '../state/DemoDecisions';
-import { DemoModeSwitch, NotificationsBell } from './TopHeader';
+import { NotificationsBell } from './TopHeader';
 
 // Mobile layout (below lg): compact header, bottom navigation, and the "My account" sheet.
 
@@ -95,13 +95,11 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({ activeScreen, 
 interface AccountSheetProps {
   isOpen: boolean;
   onClose: () => void;
-  demoMode: boolean;
-  onToggleDemoMode: () => void;
   onNavigate: (screen: ActiveScreen) => void;
 }
 
-/** "My account": name, role, theme, language and demo mode — plus the two pages not in the bottom bar. */
-export const AccountSheet: React.FC<AccountSheetProps> = ({ isOpen, onClose, demoMode, onToggleDemoMode, onNavigate }) => {
+/** "My account": name, role, theme and language — plus the two pages not in the bottom bar. */
+export const AccountSheet: React.FC<AccountSheetProps> = ({ isOpen, onClose, onNavigate }) => {
   const { lang, t, toggleLanguage } = useLanguage();
   const { theme, toggleTheme } = useTheme();
   const { stats } = useDemoDecisions();
@@ -157,10 +155,6 @@ export const AccountSheet: React.FC<AccountSheetProps> = ({ isOpen, onClose, dem
             <button type="button" onClick={toggleLanguage} className="h-9 px-3.5 rounded-xl border border-slate-200 bg-white text-xs font-bold text-slate-800">
               {t('mobile.switchLanguage')}
             </button>
-          </div>
-          <div className={row}>
-            <span className="text-sm font-medium text-slate-800">{t('header.demoMode')}</span>
-            <DemoModeSwitch demoMode={demoMode} onToggle={onToggleDemoMode} compact />
           </div>
         </div>
 

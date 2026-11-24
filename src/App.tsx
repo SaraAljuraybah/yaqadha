@@ -20,16 +20,6 @@ import { StatementRequestModal } from './components/StatementRequestModal';
 import { LiftSuspensionModal } from './components/LiftSuspensionModal';
 import { CheckCircle2, ShieldAlert, X } from 'lucide-react';
 
-const DEMO_MODE_KEY = 'yaqadha_demo_mode';
-
-const readDemoMode = (): boolean => {
-  try {
-    return localStorage.getItem(DEMO_MODE_KEY) !== 'off';
-  } catch {
-    return true;
-  }
-};
-
 type ToastType = 'success' | 'alert';
 interface ToastState {
   title: string;
@@ -46,7 +36,6 @@ export default function App() {
   const [selectedDocId, setSelectedDocId] = useState<string>('doc-3');
 
   // Shell state
-  const [demoMode, setDemoMode] = useState<boolean>(readDemoMode);
   const [isAccountOpen, setIsAccountOpen] = useState(false);
 
   // Decisions taken this session (shared with the sidebar, bell, overview and registry)
@@ -107,19 +96,6 @@ export default function App() {
     openDocumentByCode(notification.code);
   }, [openDocumentByCode]);
 
-  // Demo mode (only hides/shows the banner; the data stays the same)
-  const toggleDemoMode = () => {
-    setDemoMode((on) => {
-      const next = !on;
-      try {
-        localStorage.setItem(DEMO_MODE_KEY, next ? 'on' : 'off');
-      } catch {
-        // Storage unavailable: the choice still applies for this session
-      }
-      return next;
-    });
-  };
-
   const handlePublishSuccess = (docTitle: string) => {
     showToast({ title: t('toasts.autoApprovalTitle'), desc: t('toasts.autoApprovalBody', { title: docTitle }), type: 'success' });
   };
@@ -138,8 +114,6 @@ export default function App() {
         {/* Desktop header */}
         <div className="hidden lg:block print:hidden sticky top-0 z-30">
           <TopHeader
-            demoMode={demoMode}
-            onToggleDemoMode={toggleDemoMode}
             onOpenNotification={handleOpenNotification}
             onViewAllNotifications={() => navigate('overview')}
           />
@@ -150,14 +124,13 @@ export default function App() {
           <MobileHeader onOpenNotification={handleOpenNotification} onViewAllNotifications={() => navigate('overview')} />
         </div>
 
-        {demoMode && (
-          <div className="print:hidden">
-            <div className="hidden lg:block">
-              <DemoBanner />
-            </div>
-            <MobileDemoBanner />
+        {/* Demo banner: always shown, the platform only ever runs on demo data */}
+        <div className="print:hidden">
+          <div className="hidden lg:block">
+            <DemoBanner />
           </div>
-        )}
+          <MobileDemoBanner />
+        </div>
 
         <main className="flex-1 w-full px-4 pt-4 pb-24 sm:px-6 sm:pt-6 lg:p-8 max-w-7xl mx-auto">
 
@@ -213,8 +186,6 @@ export default function App() {
       <AccountSheet
         isOpen={isAccountOpen}
         onClose={() => setIsAccountOpen(false)}
-        demoMode={demoMode}
-        onToggleDemoMode={toggleDemoMode}
         onNavigate={navigate}
       />
 
