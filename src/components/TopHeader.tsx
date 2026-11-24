@@ -1,10 +1,10 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { AlertTriangle, ArrowLeftRight, Bell, CheckCircle2, Clock, Eye, LucideIcon } from 'lucide-react';
+import { AlertTriangle, ArrowLeftRight, Bell, CheckCircle2, ChevronDown, Clock, Eye, LogOut, LucideIcon } from 'lucide-react';
 import { ThemeToggle } from './ThemeToggle';
 import { LanguageToggle } from './LanguageToggle';
 import { useLanguage } from '../i18n';
 import { CURRENT_USER, DemoNotification, NotificationKind, getNotifications } from '../data/demo';
-import { useDemoDecisions } from '../state/DemoDecisions';
+import { useDemoDecisions, useLogOut } from '../state/DemoDecisions';
 
 const kindStyles: Record<NotificationKind, { icon: LucideIcon; tile: string }> = {
   urgent_approval: { icon: Clock, tile: 'bg-amber-50 text-amber-700 border-amber-200' },
@@ -150,9 +150,94 @@ export const NotificationsBell: React.FC<NotificationsBellProps> = ({ onOpenNoti
   );
 };
 
+/** User card that opens a small account menu: name, title, department and "Log out". */
+const UserMenu: React.FC = () => {
+  const { lang, t } = useLanguage();
+  const logOut = useLogOut();
+  const [isOpen, setIsOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const logOutRef = useRef<HTMLButtonElement>(null);
+
+  // Move focus into the menu when it opens
+  useEffect(() => {
+    if (isOpen) logOutRef.current?.focus();
+  }, [isOpen]);
+
+  // Close on outside click or Escape (Escape returns focus to the card)
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleClick = (event: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(event.target as Node)) setIsOpen(false);
+    };
+    const handleKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setIsOpen(false);
+        triggerRef.current?.focus();
+      }
+    };
+    document.addEventListener('mousedown', handleClick);
+    document.addEventListener('keydown', handleKey);
+    return () => {
+      document.removeEventListener('mousedown', handleClick);
+      document.removeEventListener('keydown', handleKey);
+    };
+  }, [isOpen]);
+
+  return (
+    <div
+      className="relative"
+      ref={containerRef}
+      // Close when keyboard focus leaves the card and its menu
+      onBlur={(e) => {
+        if (isOpen && !e.currentTarget.contains(e.relatedTarget as Node | null)) setIsOpen(false);
+      }}
+    >
+      <button
+        ref={triggerRef}
+        id="btn-user-menu"
+        type="button"
+        aria-haspopup="true"
+        aria-expanded={isOpen}
+        aria-controls="user-menu"
+        aria-label={`${t('header.accountMenuLabel')}: ${CURRENT_USER.name[lang]}`}
+        onClick={() => setIsOpen((open) => !open)}
+        className={`flex items-center gap-2.5 ps-1.5 pe-3 py-1.5 rounded-2xl bg-white border border-slate-200 shadow-2xs hover:bg-slate-50 transition-colors ${isOpen ? '!bg-slate-100' : ''}`}
+      >
+        <div className="w-9 h-9 rounded-xl bg-[#2C3E28] text-white flex items-center justify-center font-bold text-xs shrink-0">
+          {CURRENT_USER.initials[lang]}
+        </div>
+        <div className="flex flex-col text-start">
+          <span className="text-sm font-bold text-slate-900 leading-tight whitespace-nowrap">{CURRENT_USER.name[lang]}</span>
+          <span className="text-[11px] text-slate-500 font-medium whitespace-nowrap">{CURRENT_USER.role[lang]}</span>
+        </div>
+        <ChevronDown className={`w-4 h-4 text-slate-500 transition-transform ${isOpen ? 'rotate-180' : ''}`} aria-hidden="true" />
+      </button>
+
+      {isOpen && (
+        <div id="user-menu" className="absolute end-0 top-full mt-2.5 w-72 bg-white rounded-2xl border border-slate-200 shadow-xl z-50 p-3 text-start">
+          <div className="px-1.5 pb-3 border-b border-slate-100">
+            <div className="text-sm font-bold text-slate-900">{CURRENT_USER.name[lang]}</div>
+            <div className="text-xs text-slate-500 mt-0.5">{CURRENT_USER.role[lang]}</div>
+            <div className="text-xs text-slate-500 mt-0.5">{CURRENT_USER.department[lang]}</div>
+          </div>
+          <button
+            ref={logOutRef}
+            type="button"
+            onClick={logOut}
+            className="mt-3 w-full h-10 flex items-center gap-2.5 px-3 rounded-xl text-sm font-bold text-red-700 hover:bg-red-50 focus-visible:bg-red-50 transition-colors"
+          >
+            <LogOut className="w-4 h-4 rtl:-scale-x-100" aria-hidden="true" />
+            {t('header.logOut')}
+          </button>
+        </div>
+      )}
+    </div>
+  );
+};
+
 /** Desktop header (lg and up). */
 export const TopHeader: React.FC<NotificationsBellProps> = ({ onOpenNotification, onViewAllNotifications }) => {
-  const { lang } = useLanguage();
   return (
     <header className="sticky top-0 z-30 bg-[#F8FAFC]/95 dark:bg-[#0E1210]/95 backdrop-blur-md border-b border-slate-200/90 h-20 px-6 lg:px-8 flex items-center justify-end gap-3">
       <div className="flex items-center gap-2.5 shrink-0">
@@ -160,16 +245,7 @@ export const TopHeader: React.FC<NotificationsBellProps> = ({ onOpenNotification
         <LanguageToggle />
         <ThemeToggle />
 
-        {/* User card */}
-        <div className="flex items-center gap-2.5 ps-1.5 pe-3 py-1.5 rounded-2xl bg-white border border-slate-200 shadow-2xs">
-          <div className="w-9 h-9 rounded-xl bg-[#2C3E28] text-white flex items-center justify-center font-bold text-xs shrink-0">
-            {CURRENT_USER.initials[lang]}
-          </div>
-          <div className="flex flex-col text-start">
-            <span className="text-sm font-bold text-slate-900 leading-tight whitespace-nowrap">{CURRENT_USER.name[lang]}</span>
-            <span className="text-[11px] text-slate-500 font-medium whitespace-nowrap">{CURRENT_USER.role[lang]}</span>
-          </div>
-        </div>
+        <UserMenu />
       </div>
     </header>
   );

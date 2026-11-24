@@ -42,6 +42,8 @@ export const ar = {
     themeToDark: 'التبديل إلى الوضع الليلي',
     themeToLight: 'التبديل إلى الوضع النهاري',
     languageToggleLabel: 'التبديل إلى اللغة الإنجليزية',
+    accountMenuLabel: 'قائمة الحساب',
+    logOut: 'تسجيل الخروج',
   },
 
   demoBanner: {

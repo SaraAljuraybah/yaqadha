@@ -30,6 +30,8 @@ interface DemoDecisionsValue {
   /** Notifications opened this session (shared by the desktop and mobile bells) */
   readNotificationIds: Set<string>;
   markNotificationRead: (id: string) => void;
+  /** Clears every decision, note, comment, delegation change and read notification taken this session */
+  resetSession: () => void;
 }
 
 const DemoDecisionsContext = createContext<DemoDecisionsValue | null>(null);
@@ -76,6 +78,14 @@ export const DemoDecisionsProvider: React.FC<{ children: React.ReactNode }> = ({
     setRequestComments((prev) => ({ ...prev, [request]: comment }));
   }, []);
 
+  const resetSession = useCallback(() => {
+    setDecisions({});
+    setCaseNotes([]);
+    setRequestComments({});
+    setDelegations(INITIAL_DELEGATIONS);
+    setReadNotificationIds(new Set());
+  }, []);
+
   const value = useMemo<DemoDecisionsValue>(
     () => ({
       decisions,
@@ -91,8 +101,9 @@ export const DemoDecisionsProvider: React.FC<{ children: React.ReactNode }> = ({
       cancelDelegation,
       readNotificationIds,
       markNotificationRead,
+      resetSession,
     }),
-    [decisions, caseNotes, requestComments, decideCase, addCaseNote, decideRequest, delegations, addDelegation, cancelDelegation, readNotificationIds, markNotificationRead]
+    [decisions, caseNotes, requestComments, decideCase, addCaseNote, decideRequest, delegations, addDelegation, cancelDelegation, readNotificationIds, markNotificationRead, resetSession]
   );
 
   return <DemoDecisionsContext.Provider value={value}>{children}</DemoDecisionsContext.Provider>;
@@ -102,4 +113,17 @@ export const useDemoDecisions = (): DemoDecisionsValue => {
   const context = useContext(DemoDecisionsContext);
   if (!context) throw new Error('useDemoDecisions must be used inside <DemoDecisionsProvider>');
   return context;
+};
+
+/**
+ * Log out of the demo: clear this session's decisions and go to the landing page.
+ * Theme and language live in localStorage and are kept. (The full page load to / would reset the
+ * in-memory state anyway; resetting first keeps that true if the state is ever persisted.)
+ */
+export const useLogOut = (): (() => void) => {
+  const { resetSession } = useDemoDecisions();
+  return useCallback(() => {
+    resetSession();
+    window.location.assign('/');
+  }, [resetSession]);
 };

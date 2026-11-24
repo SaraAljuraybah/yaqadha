@@ -43,6 +43,8 @@ export const en: Dictionary = {
     themeToDark: 'Switch to dark mode',
     themeToLight: 'Switch to light mode',
     languageToggleLabel: 'Switch to Arabic',
+    accountMenuLabel: 'Account menu',
+    logOut: 'Log out',
   },
 
   demoBanner: {
