@@ -9,6 +9,8 @@ interface RiskAssessmentPanelProps {
   document: DocumentDossier;
   /** Context shown right below the score (e.g. the case page's governance note) */
   belowScore?: (result: RiskEvaluationResult) => React.ReactNode;
+  /** Called with the current result (null while idle, loading or failed), e.g. for the printed case file */
+  onResultChange?: (result: RiskEvaluationResult | null) => void;
 }
 
 type PanelState =
@@ -17,7 +19,7 @@ type PanelState =
   | { kind: 'success'; result: RiskEvaluationResult }
   | { kind: 'error'; code: RiskErrorCode; detail?: string };
 
-export const RiskAssessmentPanel: React.FC<RiskAssessmentPanelProps> = ({ document, belowScore }) => {
+export const RiskAssessmentPanel: React.FC<RiskAssessmentPanelProps> = ({ document, belowScore, onResultChange }) => {
   const { t } = useLanguage();
   const input = document.riskInput;
   const [state, setState] = useState<PanelState>({ kind: 'idle' });
@@ -43,13 +45,18 @@ export const RiskAssessmentPanel: React.FC<RiskAssessmentPanelProps> = ({ docume
     return pending ? track(pending) : undefined;
   }, [input?.record_id]);
 
+  const currentResult = state.kind === 'success' ? state.result : null;
+  useEffect(() => {
+    onResultChange?.(currentResult);
+  }, [currentResult, onResultChange]);
+
   if (!input) return null;
 
   const runAssessment = () => {
     track(startEvaluation(input));
   };
 
-  const result = state.kind === 'success' ? state.result : null;
+  const result = currentResult;
 
   return (
     <section id="ai-risk-assessment" className="bg-white rounded-3xl border border-slate-200/90 shadow-2xs p-6 space-y-4">

@@ -1,0 +1,244 @@
+/* Printed case file (CaseReport.tsx).
+   Plain CSS with fixed colours on purpose: dark mode remaps the Tailwind palette, and the report
+   must always print light. Page size, margins and the per-page footer are set by the @page rule
+   the component renders. */
+
+.case-report {
+  display: none;
+}
+
+@media print {
+  /* The report replaces the whole app (sidebar, header, banner, buttons, toasts, modals) */
+  body:has(> .case-report) > :not(.case-report) {
+    display: none !important;
+  }
+  body:has(> .case-report) {
+    background: #ffffff !important;
+    color: #1f2a22 !important;
+  }
+
+  .case-report {
+    display: block;
+    color-scheme: light;
+    background: #ffffff;
+    color: #1f2a22;
+    font-size: 10pt;
+    line-height: 1.55;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+    text-align: start;
+  }
+}
+
+/* ---- layout: the outer table's <thead> repeats the running header on every page ---- */
+
+.case-report .cr-layout {
+  width: 100%;
+  border-collapse: collapse;
+}
+.case-report .cr-layout > thead {
+  display: table-header-group;
+}
+.case-report .cr-layout > thead > tr > td,
+.case-report .cr-layout > tbody > tr > td {
+  padding: 0;
+  vertical-align: top;
+}
+
+.case-report .cr-running-header {
+  display: flex;
+  align-items: center;
+  gap: 2.5mm;
+  padding-bottom: 2.5mm;
+  margin-bottom: 5mm;
+  border-bottom: 0.6mm solid #2c3e28;
+  font-size: 9pt;
+  color: #2c3e28;
+  font-weight: 700;
+}
+.case-report .cr-logo {
+  width: 9mm;
+  height: 9mm;
+  object-fit: contain;
+  display: block;
+}
+
+/* ---- first-page title block ---- */
+
+.case-report .cr-title-block {
+  margin-bottom: 6mm;
+  break-after: avoid;
+}
+.case-report .cr-report-title {
+  font-size: 20pt;
+  font-weight: 700;
+  color: #2c3e28;
+  line-height: 1.25;
+}
+.case-report .cr-doc-title {
+  font-size: 13pt;
+  font-weight: 700;
+  color: #1f2a22;
+  margin-top: 1.5mm;
+}
+
+/* ---- sections ---- */
+
+.case-report .cr-section {
+  margin-bottom: 7mm;
+}
+.case-report .cr-keep,
+.case-report .cr-table tr,
+.case-report .cr-info > div {
+  break-inside: avoid;
+}
+.case-report .cr-h2 {
+  font-size: 12.5pt;
+  font-weight: 700;
+  color: #2c3e28;
+  padding-bottom: 1.2mm;
+  margin-bottom: 2mm;
+  border-bottom: 0.3mm solid #b9c8b4;
+  break-after: avoid;
+}
+.case-report .cr-h3 {
+  font-size: 10.5pt;
+  font-weight: 700;
+  color: #2c3e28;
+  margin: 4mm 0 1.5mm;
+  break-after: avoid;
+}
+.case-report .cr-sub {
+  margin-top: -1mm;
+  margin-bottom: 2.5mm;
+  break-after: avoid;
+}
+.case-report .cr-muted {
+  color: #5b6660;
+}
+.case-report .cr-small {
+  font-size: 8.5pt;
+  margin-top: 2mm;
+}
+.case-report .cr-strong {
+  font-weight: 700;
+}
+.case-report .cr-mono {
+  font-family: 'IBM Plex Sans', 'IBM Plex Sans Arabic', sans-serif !important;
+  unicode-bidi: isolate;
+}
+.case-report .cr-pre {
+  white-space: pre-line;
+}
+
+/* ---- information box ---- */
+
+.case-report .cr-info {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  border: 0.3mm solid #b9c8b4;
+  border-radius: 2mm;
+  background: #f4f7f3;
+  margin: 0 0 3mm;
+}
+.case-report .cr-info > div {
+  padding: 2.2mm 3.5mm;
+  border-bottom: 0.2mm solid #dbe4d8;
+}
+.case-report .cr-info > .cr-info-wide {
+  grid-column: 1 / -1;
+}
+.case-report .cr-info dt {
+  font-size: 8.5pt;
+  color: #5b6660;
+}
+.case-report .cr-info dd {
+  margin: 0.5mm 0 0;
+}
+.case-report .cr-score {
+  font-size: 16pt;
+  font-weight: 700;
+}
+
+/* ---- tables (header row repeats if a table continues on the next page) ---- */
+
+.case-report .cr-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 3mm;
+  font-size: 9.5pt;
+}
+.case-report .cr-table thead {
+  display: table-header-group;
+}
+.case-report .cr-table th {
+  background: #2c3e28;
+  color: #ffffff;
+  font-weight: 700;
+  text-align: start;
+  padding: 2mm 2.5mm;
+  border: 0.2mm solid #2c3e28;
+}
+.case-report .cr-table td {
+  padding: 2mm 2.5mm;
+  border: 0.2mm solid #cfdacb;
+  vertical-align: top;
+  text-align: start;
+}
+.case-report .cr-table tbody tr:nth-child(even) td {
+  background: #f4f7f3;
+}
+.case-report .cr-col-num {
+  width: 8mm;
+  text-align: center !important;
+}
+.case-report .cr-col-time {
+  width: 30mm;
+  white-space: nowrap;
+}
+.case-report .cr-col-reviewer {
+  width: 38mm;
+}
+.case-report .cr-col-points {
+  width: 22mm;
+  white-space: nowrap;
+}
+
+/* ---- status colours and callouts ---- */
+
+.case-report .cr-ok {
+  color: #047857;
+}
+.case-report .cr-warn {
+  color: #b45309;
+}
+.case-report .cr-bad {
+  color: #b91c1c;
+}
+.case-report .cr-callout {
+  border-radius: 2mm;
+  padding: 2.5mm 3.5mm;
+  margin: 0 0 3mm;
+  border: 0.3mm solid;
+  font-size: 9.5pt;
+}
+.case-report .cr-callout-bad {
+  background: #fef2f2;
+  border-color: #fecaca;
+  color: #7f1d1d;
+}
+.case-report .cr-callout-ok {
+  background: #ecfdf5;
+  border-color: #a7f3d0;
+  color: #064e3b;
+}
+.case-report .cr-callout-warn {
+  background: #fffbeb;
+  border-color: #fde68a;
+  color: #78350f;
+}
+.case-report .cr-callout-neutral {
+  background: #f4f7f3;
+  border-color: #cfdacb;
+  color: #1f2a22;
+}

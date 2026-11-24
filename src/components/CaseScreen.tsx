@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import {
   AlertTriangle,
   Check,
@@ -14,7 +14,7 @@ import {
   X,
   LucideIcon,
 } from 'lucide-react';
-import { DocumentDossier, SignatureStep } from '../types';
+import { DocumentDossier, RiskEvaluationResult, SignatureStep } from '../types';
 import { TranslationKey, useLanguage } from '../i18n';
 import {
   CASE_FILE,
@@ -28,6 +28,7 @@ import {
 } from '../data/demo';
 import { RiskAssessmentPanel } from './RiskAssessmentPanel';
 import { useDemoDecisions } from '../state/DemoDecisions';
+import { CaseReport, stageStatusKey } from './CaseReport';
 
 // Case page for a precautionary suspension (مؤشرات المستندات)
 
@@ -65,10 +66,11 @@ const SKY_TILE = 'bg-sky-50 text-sky-700 border-sky-200 dark:bg-[#0F1C24] dark:t
 // ---- approval chain ----------------------------------------------------------
 
 const stageVisual = (step: SignatureStep): { icon: LucideIcon; ring: string; label: TranslationKey; text: string } => {
-  if (step.status === 'signed') return { icon: Check, ring: 'border-emerald-500 text-emerald-600 bg-emerald-50', label: 'casePage.stageCompleted', text: 'text-emerald-700' };
+  const label = stageStatusKey(step);
+  if (step.status === 'signed') return { icon: Check, ring: 'border-emerald-500 text-emerald-600 bg-emerald-50', label, text: 'text-emerald-700' };
   if (step.status === 'bypassed' || step.status === 'skipped')
-    return { icon: X, ring: 'border-red-500 text-red-600 bg-red-50', label: 'casePage.stageBypassed', text: 'text-red-700' };
-  return { icon: Clock, ring: 'border-amber-500 text-amber-600 bg-amber-50', label: 'common.publishRequested', text: 'text-amber-700' };
+    return { icon: X, ring: 'border-red-500 text-red-600 bg-red-50', label, text: 'text-red-700' };
+  return { icon: Clock, ring: 'border-amber-500 text-amber-600 bg-amber-50', label, text: 'text-amber-700' };
 };
 
 /** Connector after a stage takes that stage's outcome: green when signed, red when bypassed. */
@@ -128,6 +130,10 @@ export const CaseScreen: React.FC<CaseScreenProps> = ({
   const decision = decisions.case ?? 'pending';
   const registerEntry = useMemo(() => getRegisterDocuments(lang).find((d) => d.code === CASE_FILE.code), [lang]);
   const title = registerEntry?.shortTitle ?? document.title;
+  const fullTitle = registerEntry?.title ?? document.title;
+  // Latest AI risk result (included in the printed case file when present)
+  const [riskResult, setRiskResult] = useState<RiskEvaluationResult | null>(null);
+  const handleRiskResult = useCallback((result: RiskEvaluationResult | null) => setRiskResult(result), []);
   const department = registerEntry ? DEPARTMENTS[registerEntry.department][lang] : document.department;
 
   const notes = [
@@ -153,16 +159,19 @@ export const CaseScreen: React.FC<CaseScreenProps> = ({
       ? { label: t('casePage.badgeEscalated'), cls: 'bg-red-50 text-red-700 border-red-200', dot: 'bg-red-500' }
       : { label: t('common.blocked'), cls: 'bg-red-50 text-red-700 border-red-200', dot: 'bg-red-500' };
 
-  // Export: the browser's print dialog ("Save as PDF"), always printed in light colors
-  const handleExport = () => {
-    const root = window.document.documentElement;
-    const wasDark = root.classList.contains('dark');
-    if (wasDark) {
-      root.classList.remove('dark');
-      window.addEventListener('afterprint', () => root.classList.add('dark'), { once: true });
-    }
-    window.print();
-  };
+  /** "Critical Override" note when the model's score is not red but a confirmed violation drove the suspension. */
+  const overrideText = (result: RiskEvaluationResult): string | null =>
+    result.risk_score !== null && result.risk_color && result.risk_color !== 'Red'
+      ? t('casePage.overrideNote', {
+          score: result.risk_score,
+          color: t(result.risk_color === 'Yellow' ? 'casePage.colorYellow' : 'casePage.colorGreen'),
+          violation: CASE_VIOLATIONS[0].text[lang],
+        })
+      : null;
+
+  // Export: the browser's print dialog ("Save as PDF") prints the dedicated case report (CaseReport),
+  // which is always light and replaces the screen layout when printing
+  const handleExport = () => window.print();
 
   const saveNote = () => {
     const text = draft.trim();
@@ -355,24 +364,35 @@ export const CaseScreen: React.FC<CaseScreenProps> = ({
       <div className="print:hidden">
         <RiskAssessmentPanel
           document={document}
-          belowScore={(result) =>
+          onResultChange={handleRiskResult}
+          belowScore={(result) => {
             // A non-red model score sits next to a confirmed violation: say clearly which one drove the suspension
-            result.risk_score !== null && result.risk_color && result.risk_color !== 'Red' ? (
+            const note = overrideText(result);
+            return note ? (
               <div id="case-governance-override" className="rounded-2xl border border-red-200 bg-red-50/60 p-4 flex items-start gap-3" role="note">
                 <AlertTriangle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
                 <p className="text-sm text-slate-800 leading-relaxed">
                   <span className="font-bold text-red-700" dir="ltr">Critical Override: </span>
-                  {t('casePage.overrideNote', {
-                    score: result.risk_score,
-                    color: t(result.risk_color === 'Yellow' ? 'casePage.colorYellow' : 'casePage.colorGreen'),
-                    violation: CASE_VIOLATIONS[0].text[lang],
-                  })}
+                  {note}
                 </p>
               </div>
-            ) : null
-          }
+            ) : null;
+          }}
         />
       </div>
+
+      {/* Printed case file (hidden on screen) */}
+      <CaseReport
+        document={document}
+        title={fullTitle}
+        department={department}
+        statusLabel={statusBadge.label}
+        decision={decision}
+        timeline={timeline}
+        notes={notes}
+        riskResult={riskResult}
+        overrideText={riskResult ? overrideText(riskResult) : null}
+      />
     </div>
   );
 };
